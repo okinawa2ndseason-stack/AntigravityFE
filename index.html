@@ -6,7 +6,7 @@
   <title>FE-BrainLab | 基本情報アクティブリコール道場</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts: JetBrains Mono (記憶を深める等幅) + Noto Sans JP -->
+  <!-- Google Fonts: JetBrains Mono + Noto Sans JP -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -19,11 +19,11 @@
               bg: '#0a0f1d',
               card: '#131d33',
               cardHover: '#1a2744',
-              accent: '#38bdf8', // 集中・想像力を高めるスカイブルー
+              accent: '#38bdf8',
               accentGlow: 'rgba(56, 189, 248, 0.25)',
-              success: '#10b981', // 達成感グリーン
+              success: '#10b981',
               warning: '#f59e0b',
-              danger: '#f43f5e', // 注意喚起・要復習ローズ
+              danger: '#f43f5e',
               text: '#f1f5f9',
               subtext: '#94a3b8'
             }
@@ -45,7 +45,6 @@
     .touch-btn:active {
       transform: scale(0.97);
     }
-    /* カスタムスクロールバー */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -57,7 +56,6 @@
       background: #1e293b;
       border-radius: 3px;
     }
-    /* パルス波形アニメーション */
     @keyframes soundwave {
       0%, 100% { height: 6px; }
       50% { height: 26px; }
@@ -71,7 +69,19 @@
     .wave-bar:nth-child(5) { animation-delay: 0.3s; }
   </style>
 </head>
-<body class="font-sans min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white">
+<body class="font-sans min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white relative">
+
+  <!-- 有機ELバッテリー超節約 ブラックアウト全画面オーバーレイ -->
+  <div id="blackoutOverlay" onclick="toggleBlackout(false)" class="hidden fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center select-none cursor-pointer">
+    <div class="space-y-4">
+      <div class="w-3 h-3 rounded-full bg-emerald-500/80 mx-auto animate-ping"></div>
+      <p class="text-xs text-neutral-600 font-mono">🔋 有機EL省電力モードで音声再生中</p>
+      <p class="text-[11px] text-neutral-700">画面をタップすると通常画面に戻ります</p>
+    </div>
+  </div>
+
+  <!-- バックグラウンド再生維持用の極小無音オーディオ要素 -->
+  <audio id="silentAudioPlayer" loop preload="auto" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=="></audio>
 
   <!-- ヘッダー -->
   <header class="sticky top-0 z-50 bg-[#0a0f1d]/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
@@ -137,7 +147,7 @@
             <p id="hintContent" class="text-slate-300 text-xs sm:text-sm leading-relaxed"></p>
           </div>
 
-          <!-- 解答・解説エリア (最初は非表示) -->
+          <!-- 解答・解説エリア -->
           <div id="answerBox" class="hidden space-y-3 pt-3 border-t border-slate-800/80 animate-fade-in">
             <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800">
               <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1">✓ 正解キーワード</span>
@@ -162,7 +172,7 @@
             </button>
           </div>
 
-          <!-- 解答後の自己評価ボタン (D-Lab式分散学習フィードバック) -->
+          <!-- 解答後の自己評価ボタン -->
           <div id="postAnswerActions" class="hidden grid grid-cols-2 gap-3">
             <button onclick="handleFeedback(false)" class="touch-btn py-3.5 px-4 bg-slate-800 hover:bg-rose-950 text-rose-400 font-bold rounded-xl border border-rose-900/40 text-sm flex items-center justify-center gap-1.5 transition">
               <span>✕</span> もう一度（要復習）
@@ -256,32 +266,38 @@
       </div>
     </div>
 
-    <!-- 3. 耳学15分モード (通勤オーディオブック 自然音声・アクティブリコール強化版) -->
+    <!-- 3. 耳学15分モード (通勤オーディオブック バックグラウンド＆スキップ対応版) -->
     <div id="audioView" class="hidden flex-1 flex flex-col justify-between">
       <div class="bg-[#131d33] border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl flex-1 flex flex-col justify-between">
         <div>
-          <!-- 音声波形アニメーション表示 -->
+          <!-- ヘッダーと波形・省電力ボタン -->
           <div class="flex items-center justify-between mb-4">
             <span class="text-xs px-2.5 py-1 bg-sky-950 text-sky-400 border border-sky-800 rounded-full font-mono flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> 自然音声・アクティブリコール
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> 耳学アクティブリコール
             </span>
-            <div id="soundWaves" class="flex items-end gap-1 h-6 hidden">
-              <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
-              <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
-              <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
-              <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
-              <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
+            <div class="flex items-center gap-2">
+              <button onclick="toggleBlackout(true)" class="touch-btn text-[11px] px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 flex items-center gap-1">
+                <span>🔋</span> 省電力ブラック画面
+              </button>
+              <div id="soundWaves" class="flex items-end gap-1 h-5 hidden">
+                <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
+                <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
+                <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
+                <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
+                <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
+              </div>
             </div>
           </div>
 
           <!-- 再生中フェーズバッジ -->
-          <div class="flex items-center gap-2 mb-3">
-            <span id="speechPhaseBadge" class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+          <div class="flex items-center justify-between mb-3 text-xs font-mono">
+            <span id="speechPhaseBadge" class="px-2 py-0.5 rounded bg-slate-800 text-slate-400">
               [待機中]
             </span>
-            <span id="thinkingIndicator" class="text-xs text-amber-400 font-bold hidden animate-pulse">
-              ⏳ 思考タイム（思い出す練習）...
+            <span id="thinkingIndicator" class="text-amber-400 font-bold hidden animate-pulse">
+              ⏳ 思考タイム（思い出す練習中）...
             </span>
+            <span id="audioTrackCounter" class="text-slate-400">1 / 8</span>
           </div>
 
           <!-- 再生中カード -->
@@ -289,49 +305,52 @@
             <div class="text-[10px] text-sky-400 font-mono uppercase tracking-wider mb-1">再生中の重要キーワード:</div>
             <div id="audioCurrentTerm" class="text-lg font-bold text-white mb-2 font-mono">準備完了</div>
             <div class="text-[11px] text-slate-400 leading-relaxed border-t border-slate-850 pt-2" id="audioCurrentAnalogy">
-              「連続再生スタート」を押すと、高音質な日本語音声で「問題 ➔ ヒント ➔ 正解」を人間らしい抑揚・間で自動読み上げします。
+              「再生スタート」を押すと、高音質な日本語音声で「問題 ➔ ヒント ➔ 正解」を自動連続再生します。
             </div>
           </div>
 
-          <!-- 音声カスタマイズ設定アコーディオン -->
+          <!-- 設定エリア（速度・想起の間） -->
           <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-800 space-y-3 mb-2 text-xs">
-            <div class="flex items-center justify-between text-slate-300 font-bold">
-              <span>🎙️ 自然音声の選択</span>
-              <button onclick="testVoicePlayback()" class="text-sky-400 hover:underline text-[11px]">▶ 声を試聴</button>
-            </div>
-            
-            <!-- ボイス選択ドロップダウン -->
-            <select id="voiceSelect" onchange="changeVoice()" class="w-full bg-slate-950 border border-slate-700 text-white p-2 rounded-lg text-xs font-mono focus:outline-none focus:border-sky-500">
-              <option value="">音声を読み込み中...</option>
-            </select>
-
-            <!-- 速度・シンキングタイム設定 -->
-            <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+            <div class="grid grid-cols-2 gap-3">
               <div>
-                <span class="text-slate-400 block mb-1">再生速度</span>
+                <span class="text-slate-400 block mb-1 font-medium">再生速度</span>
                 <div class="flex gap-1 font-mono">
-                  <button onclick="setAudioRate(0.95)" class="rate-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center">0.9x</button>
-                  <button onclick="setAudioRate(1.05)" class="rate-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center">1.0x</button>
-                  <button onclick="setAudioRate(1.25)" class="rate-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center">1.2x</button>
+                  <button data-rate="0.9" onclick="setAudioRate(0.9)" class="rate-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">0.9x</button>
+                  <button data-rate="1.0" onclick="setAudioRate(1.0)" class="rate-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center transition">1.0x</button>
+                  <button data-rate="1.2" onclick="setAudioRate(1.2)" class="rate-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">1.2x</button>
                 </div>
               </div>
               <div>
-                <span class="text-slate-400 block mb-1">想起の間（シンキング）</span>
+                <span class="text-slate-400 block mb-1 font-medium">想起の間（シンキング）</span>
                 <div class="flex gap-1 font-mono">
-                  <button onclick="setThinkTime(2)" class="think-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center">2秒</button>
-                  <button onclick="setThinkTime(3)" class="think-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center">3秒</button>
-                  <button onclick="setThinkTime(4)" class="think-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center">4秒</button>
+                  <button data-think="2" onclick="setThinkTime(2)" class="think-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">2秒</button>
+                  <button data-think="3" onclick="setThinkTime(3)" class="think-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center transition">3秒</button>
+                  <button data-think="4" onclick="setThinkTime(4)" class="think-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">4秒</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 再生コントロール -->
+        <!-- 再生コントロール群（前へ・再生/停止・次へ） -->
         <div class="mt-4 space-y-2">
-          <button id="audioPlayBtn" onclick="toggleAudioPlayback()" class="touch-btn w-full py-4 px-6 bg-gradient-to-r from-sky-500 to-emerald-400 hover:opacity-90 text-slate-950 font-black rounded-xl text-base shadow-xl shadow-sky-500/20 transition flex items-center justify-center gap-2">
-            <span id="playIcon">▶</span> <span id="playBtnText">連続再生スタート（耳学アクティブリコール）</span>
-          </button>
+          <div class="grid grid-cols-5 gap-2">
+            <!-- 前へボタン -->
+            <button onclick="skipAudio(-1)" class="touch-btn col-span-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700 flex items-center justify-center text-lg transition" title="前の問題へ">
+              ⏮
+            </button>
+            <!-- メイン再生/一時停止ボタン -->
+            <button id="audioPlayBtn" onclick="toggleAudioPlayback()" class="touch-btn col-span-3 py-3.5 px-4 bg-gradient-to-r from-sky-500 to-emerald-400 hover:opacity-90 text-slate-950 font-black rounded-xl text-base shadow-xl shadow-sky-500/20 transition flex items-center justify-center gap-2">
+              <span id="playIcon">▶</span> <span id="playBtnText">再生スタート</span>
+            </button>
+            <!-- 次へボタン -->
+            <button onclick="skipAudio(1)" class="touch-btn col-span-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700 flex items-center justify-center text-lg transition" title="次の問題へ">
+              ⏭
+            </button>
+          </div>
+          <p class="text-[10px] text-center text-slate-400">
+            画面が暗くならないようスリープ防止機能を自動起動中（ポケット時は省電力画面推奨）
+          </p>
         </div>
       </div>
     </div>
@@ -356,7 +375,6 @@
         answer: "ゼロトラスト (Zero Trust)",
         hint: "「境界線セキュリティ（お城と堀）」の崩壊。「家の中にいる家族でも、部屋に入るたびに顔認証する」ような考え方です。",
         explanation: "従来型はVPNなどの「境界防御」でしたが、リモートワークやクラウド普及により境界が消滅。全てのリクエストを「認証・認可・暗号化」するゼロトラストモデルが基本情報・SGともに最頻出です。",
-        // 音声読み上げ専用スクリプト（自然な語順、適切な間、アルファベットの日本語発音化）
         speechScript: {
           q: "問題です。社内ネットワークの内側であっても、誰も無条件に信頼せず、すべてのアクセスを検証するセキュリティの考え方は何でしょうか？",
           hint: "たとえ話のヒントです。家の中にいる家族であっても、部屋に入るたびに顔認証をするようなイメージです。",
@@ -473,11 +491,9 @@
       document.getElementById('correctAnswer').innerText = q.answer;
       document.getElementById('explanationText').innerText = q.explanation;
 
-      // プログレスバー更新
       const percent = ((curQIndex) / questions.length) * 100;
       document.getElementById('progressBar').style.width = percent + '%';
 
-      // 表示初期化
       document.getElementById('hintBox').classList.add('hidden');
       document.getElementById('hintBtnText').innerText = "日常のたとえヒントを見る（想起の手がかり）";
       isHintOpen = false;
@@ -509,11 +525,9 @@
         streak++;
       } else {
         streak = 0;
-        // 間違えた問題を末尾にプッシュして間隔反復（Spaced Repetition）
         questions.push(questions[curQIndex]);
       }
       document.getElementById('streakCount').innerText = `🔥 連続正解 ${streak}`;
-
       curQIndex = (curQIndex + 1) % questions.length;
       renderQuestion();
     }
@@ -645,110 +659,113 @@
     }
 
     // ==========================================
-    // 4. 耳学15分コントローラ (自然音声・高音質アクティブリコール エンジン)
+    // 4. 耳学15分コントローラ (バックグラウンド再生・スキップ・スリープ防止)
     // ==========================================
     let isPlayingAudio = false;
     let audioQIdx = 0;
-    let audioRate = 1.05;
-    let thinkSeconds = 3; // 思い出すためのシンキングタイム（秒）
-    let availableVoices = [];
+    let audioRate = 1.0;
+    let thinkSeconds = 3;
     let selectedVoice = null;
     let speechTimer = null;
+    let wakeLockSentinel = null;
     const synth = window.speechSynthesis;
+    const silentAudio = document.getElementById('silentAudioPlayer');
 
-    // 利用可能な日本語音声を読み込み、最も自然な音声（Natural / Google / Siriなど）を自動選定
-    function initVoices() {
+    // 自動で最適な日本語音声を探索（UIドロップダウンは撤去）
+    function initBestVoice() {
       if (!synth) return;
       const voices = synth.getVoices();
       if (!voices || voices.length === 0) return;
 
-      availableVoices = voices.filter(v => v.lang.startsWith('ja') || v.lang.includes('JP'));
+      const jaVoices = voices.filter(v => v.lang.startsWith('ja') || v.lang.includes('JP'));
+      if (jaVoices.length === 0) return;
 
-      const voiceSelect = document.getElementById('voiceSelect');
-      voiceSelect.innerHTML = '';
-
-      if (availableVoices.length === 0) {
-        voiceSelect.innerHTML = '<option value="">デフォルト日本語音声</option>';
-        return;
-      }
-
-      // 自然・高品質キーワードの優先順位スコアリング
-      let bestVoice = availableVoices[0];
       let bestScore = -1;
-
-      availableVoices.forEach((v, idx) => {
+      jaVoices.forEach(v => {
         let score = 0;
         const nameLower = v.name.toLowerCase();
-        if (nameLower.includes('natural') || nameLower.includes('online')) score += 10;
-        if (nameLower.includes('nanami')) score += 8; // Windows 最高峰
-        if (nameLower.includes('keita')) score += 7;
-        if (nameLower.includes('siri')) score += 8; // iOS 最高峰
+        if (nameLower.includes('google')) score += 10; // Android Chromeに最適
+        if (nameLower.includes('natural') || nameLower.includes('online')) score += 9;
+        if (nameLower.includes('siri')) score += 8;
+        if (nameLower.includes('nanami')) score += 7;
         if (nameLower.includes('kyoko') || nameLower.includes('otoya')) score += 6;
-        if (nameLower.includes('google')) score += 7; // Android / Chrome 最高峰
 
         if (score > bestScore) {
           bestScore = score;
-          bestVoice = v;
+          selectedVoice = v;
         }
-
-        const opt = document.createElement('option');
-        opt.value = idx;
-        opt.innerText = `${v.name} ${score >= 6 ? '⭐ [高音質]' : ''}`;
-        voiceSelect.appendChild(opt);
       });
-
-      selectedVoice = bestVoice;
-      const bestIdx = availableVoices.indexOf(bestVoice);
-      if (bestIdx >= 0) voiceSelect.value = bestIdx;
     }
 
     if (synth) {
-      synth.onvoiceschanged = initVoices;
-      initVoices();
+      synth.onvoiceschanged = initBestVoice;
+      initBestVoice();
     }
 
-    function changeVoice() {
-      const idx = document.getElementById('voiceSelect').value;
-      if (availableVoices[idx]) {
-        selectedVoice = availableVoices[idx];
+    // スリープ防止 (Screen Wake Lock API)
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockSentinel = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.warn("Wake Lock error:", err);
+        }
       }
     }
 
+    function releaseWakeLock() {
+      if (wakeLockSentinel) {
+        wakeLockSentinel.release().then(() => {
+          wakeLockSentinel = null;
+        }).catch(() => {});
+      }
+    }
+
+    // 有機ELバッテリー超節約 ブラックアウト切り替え
+    function toggleBlackout(enable) {
+      const overlay = document.getElementById('blackoutOverlay');
+      if (enable) {
+        overlay.classList.remove('hidden');
+      } else {
+        overlay.classList.add('hidden');
+      }
+    }
+
+    // 再生速度の変更（バグ修正: 既存シーケンスを壊さず変数のみ更新）
     function setAudioRate(rate) {
       audioRate = rate;
       document.querySelectorAll('.rate-btn').forEach(btn => {
-        if (parseFloat(btn.innerText) === rate) {
-          btn.className = "rate-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center";
+        const btnRate = parseFloat(btn.dataset.rate);
+        if (Math.abs(btnRate - rate) < 0.05) {
+          btn.className = "rate-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center transition";
         } else {
-          btn.className = "rate-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center";
+          btn.className = "rate-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition";
         }
       });
-      if (isPlayingAudio) {
-        stopAudioPlayback();
-        toggleAudioPlayback();
-      }
     }
 
+    // 想起の間（シンキングタイム）の変更
     function setThinkTime(sec) {
       thinkSeconds = sec;
       document.querySelectorAll('.think-btn').forEach(btn => {
-        if (parseInt(btn.innerText) === sec) {
-          btn.className = "think-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center";
+        const btnThink = parseInt(btn.dataset.think);
+        if (btnThink === sec) {
+          btn.className = "think-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center transition";
         } else {
-          btn.className = "think-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center";
+          btn.className = "think-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition";
         }
       });
     }
 
-    function testVoicePlayback() {
-      if (!synth) return;
-      synth.cancel();
-      const utter = new SpeechSynthesisUtterance("基本情報技術者試験、合格を目指して頑張りましょう！");
-      if (selectedVoice) utter.voice = selectedVoice;
-      utter.lang = 'ja-JP';
-      utter.rate = audioRate;
-      utter.pitch = 1.05; // 少し高めで明瞭なトーン
-      synth.speak(utter);
+    // 前へ / 次へ スキップ機能
+    function skipAudio(direction) {
+      clearAllSpeech();
+      audioQIdx = (audioQIdx + direction + questions.length) % questions.length;
+      if (isPlayingAudio) {
+        playSpeechSequence();
+      } else {
+        updateAudioDisplay();
+      }
     }
 
     function toggleAudioPlayback() {
@@ -762,14 +779,32 @@
       } else {
         isPlayingAudio = true;
         updateAudioUI(true);
+        requestWakeLock();
+        if (silentAudio) {
+          silentAudio.play().catch(() => {});
+        }
+        setupMediaSession();
         playSpeechSequence();
+      }
+    }
+
+    function clearAllSpeech() {
+      if (speechTimer) {
+        clearTimeout(speechTimer);
+        speechTimer = null;
+      }
+      if (synth) {
+        synth.cancel();
       }
     }
 
     function stopAudioPlayback() {
       isPlayingAudio = false;
-      if (speechTimer) clearTimeout(speechTimer);
-      if (synth) synth.cancel();
+      clearAllSpeech();
+      releaseWakeLock();
+      if (silentAudio) {
+        silentAudio.pause();
+      }
       updateAudioUI(false);
       document.getElementById('speechPhaseBadge').innerText = "[一時停止]";
       document.getElementById('thinkingIndicator').classList.add('hidden');
@@ -782,11 +817,35 @@
       if (playing) {
         soundWaves.classList.remove('hidden');
         icon.innerText = "⏸";
-        text.innerText = "一時停止する";
+        text.innerText = "一時停止";
       } else {
         soundWaves.classList.add('hidden');
         icon.innerText = "▶";
-        text.innerText = "連続再生スタート（耳学アクティブリコール）";
+        text.innerText = "再生スタート";
+      }
+    }
+
+    function updateAudioDisplay() {
+      const q = questions[audioQIdx];
+      document.getElementById('audioCurrentTerm').innerText = q.answer;
+      document.getElementById('audioCurrentAnalogy').innerText = q.hint;
+      document.getElementById('audioTrackCounter').innerText = `${audioQIdx + 1} / ${questions.length}`;
+    }
+
+    // Android ロック画面・通知コントローラー (MediaSession API)
+    function setupMediaSession() {
+      if ('mediaSession' in navigator) {
+        const q = questions[audioQIdx];
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: q.answer,
+          artist: "FE-BrainLab 耳学アクティブリコール",
+          album: `問題 ${audioQIdx + 1} / ${questions.length}`
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => toggleAudioPlayback());
+        navigator.mediaSession.setActionHandler('pause', () => toggleAudioPlayback());
+        navigator.mediaSession.setActionHandler('previoustrack', () => skipAudio(-1));
+        navigator.mediaSession.setActionHandler('nexttrack', () => skipAudio(1));
       }
     }
 
@@ -794,18 +853,19 @@
     function playSpeechSequence() {
       if (!isPlayingAudio) return;
 
+      clearAllSpeech();
+      updateAudioDisplay();
+      setupMediaSession();
+      document.getElementById('thinkingIndicator').classList.add('hidden');
+
       const q = questions[audioQIdx];
       const script = q.speechScript;
-
-      document.getElementById('audioCurrentTerm').innerText = q.answer;
-      document.getElementById('audioCurrentAnalogy').innerText = q.hint;
-      document.getElementById('thinkingIndicator').classList.add('hidden');
 
       // Step 1: 問題文の読み上げ
       document.getElementById('speechPhaseBadge').innerText = "【1/3】問題出題";
       document.getElementById('speechPhaseBadge').className = "text-xs px-2 py-0.5 rounded bg-sky-950 text-sky-400 font-mono border border-sky-800";
 
-      speakText(script.q, 1.02, 1.0, () => {
+      speakText(script.q, 1.0, 1.0, () => {
         if (!isPlayingAudio) return;
 
         // Step 2: 1.2秒後にヒント読み上げ
@@ -848,7 +908,6 @@
 
     function speakText(text, pitch, volume, onEndCallback) {
       if (!isPlayingAudio) return;
-      synth.cancel();
 
       const utter = new SpeechSynthesisUtterance(text);
       if (selectedVoice) utter.voice = selectedVoice;
@@ -862,7 +921,7 @@
       };
 
       utter.onerror = (e) => {
-        console.warn("Speech synthesis error", e);
+        console.warn("Speech synthesis event", e);
         if (onEndCallback) onEndCallback();
       };
 
@@ -904,13 +963,14 @@
       } else if (mode === 'audio') {
         audioView.classList.remove('hidden');
         tabAudio.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow";
+        updateAudioDisplay();
       }
     }
 
     // 初期化
     window.addEventListener('DOMContentLoaded', () => {
       renderQuestion();
-      setTimeout(initVoices, 300);
+      setTimeout(initBestVoice, 300);
     });
   </script>
 </body>
