@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FE-BrainLab | 基本情報アクティブリコール道場</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: JetBrains Mono (記憶を深める等幅) + Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            dlab: {
+              bg: '#0a0f1d',
+              card: '#131d33',
+              cardHover: '#1a2744',
+              accent: '#38bdf8', // 集中・想像力を高めるスカイブルー
+              accentGlow: 'rgba(56, 189, 248, 0.25)',
+              success: '#10b981', // 達成感グリーン
+              warning: '#f59e0b',
+              danger: '#f43f5e', // 注意喚起・要復習ローズ
+              text: '#f1f5f9',
+              subtext: '#94a3b8'
+            }
+          },
+          fontFamily: {
+            sans: ['"Noto Sans JP"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0a0f1d;
+      color: #f1f5f9;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .touch-btn:active {
+      transform: scale(0.97);
+    }
+    /* カスタムスクロールバー */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0f1d;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="font-sans min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white">
+
+  <!-- ヘッダー -->
+  <header class="sticky top-0 z-50 bg-[#0a0f1d]/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+    <div class="max-w-xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <span class="inline-block w-3 h-3 rounded-full bg-sky-400 animate-pulse shadow-[0_0_8px_#38bdf8]"></span>
+        <h1 class="text-base font-bold tracking-tight text-white font-mono flex items-center gap-1.5">
+          FE-BrainLab <span class="text-xs px-2 py-0.5 rounded-full bg-sky-950 text-sky-400 border border-sky-800">D-Lab式</span>
+        </h1>
+      </div>
+      <!-- モード切り替えタブ -->
+      <nav class="flex space-x-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-xs">
+        <button id="tabRecall" onclick="switchMode('recall')" class="px-3 py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow">
+          🧠 想起道場
+        </button>
+        <button id="tabTrace" onclick="switchMode('trace')" class="px-3 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white">
+          ⚡ トレース
+        </button>
+        <button id="tabAudio" onclick="switchMode('audio')" class="px-3 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white">
+          🎧 耳学15分
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ領域 -->
+  <main class="max-w-xl mx-auto w-full flex-1 px-4 py-4 flex flex-col">
+
+    <!-- 1. 想起道場モード (Active Recall Mode) -->
+    <div id="recallView" class="flex-1 flex flex-col">
+      <!-- ステータスバー -->
+      <div class="flex items-center justify-between text-xs text-slate-400 mb-3 px-1">
+        <div class="flex items-center gap-2">
+          <span id="categoryBadge" class="px-2 py-0.5 rounded bg-slate-800 text-sky-300 font-mono text-[11px] border border-slate-700">最新テクノロジ</span>
+          <span id="streakCount" class="text-amber-400 font-bold">🔥 連続正解 0</span>
+        </div>
+        <div class="font-mono text-[11px]">
+          問題: <span id="currentIndex" class="text-white font-bold">1</span> / <span id="totalQuestions">10</span>
+        </div>
+      </div>
+
+      <!-- プログレスバー -->
+      <div class="w-full bg-slate-800 h-1.5 rounded-full mb-4 overflow-hidden">
+        <div id="progressBar" class="bg-gradient-to-r from-sky-500 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+      </div>
+
+      <!-- クエスチョンカード (Desirable Difficulty設計) -->
+      <div class="bg-[#131d33] border border-slate-800 rounded-2xl p-5 shadow-xl shadow-black/40 flex-1 flex flex-col justify-between mb-4">
+        <div>
+          <div class="flex items-center justify-between text-xs text-sky-400/80 mb-2 font-mono">
+            <span>[RETRIEVAL TASK]</span>
+            <span id="difficultyBadge" class="text-[10px] px-2 py-0.5 bg-slate-800 rounded text-slate-300">頻出・必須</span>
+          </div>
+          <h2 id="questionTitle" class="text-base sm:text-lg font-bold text-white leading-relaxed mb-4">
+            読み込み中...
+          </h2>
+
+          <!-- ヒントアコーディオン (二段階想起) -->
+          <div id="hintBox" class="hidden mb-4 p-3.5 bg-slate-900/90 border border-sky-900/50 rounded-xl text-sm">
+            <div class="flex items-center gap-1.5 text-xs font-bold text-sky-400 mb-1">
+              💡 日常のたとえ話ヒント（精緻化）
+            </div>
+            <p id="hintContent" class="text-slate-300 text-xs sm:text-sm leading-relaxed"></p>
+          </div>
+
+          <!-- 解答・解説エリア (最初は非表示) -->
+          <div id="answerBox" class="hidden space-y-3 pt-3 border-t border-slate-800/80 animate-fade-in">
+            <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800">
+              <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1">✓ 正解キーワード</span>
+              <p id="correctAnswer" class="text-lg font-bold text-white font-mono"></p>
+            </div>
+            <div class="p-3 bg-sky-950/30 rounded-xl border border-sky-900/40 text-xs sm:text-sm text-slate-300 leading-relaxed">
+              <span class="text-xs font-bold text-sky-400 block mb-1">🔍 科学的解説（なぜ重要か？）</span>
+              <p id="explanationText"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- アクションボタン群 -->
+        <div class="mt-6 space-y-2">
+          <!-- 解答前のボタン -->
+          <div id="preAnswerActions" class="space-y-2">
+            <button onclick="toggleHint()" class="touch-btn w-full py-3 px-4 bg-slate-800/80 hover:bg-slate-700/80 text-sky-300 font-medium rounded-xl border border-slate-700 flex items-center justify-center gap-2 text-sm transition">
+              <span>💡</span> <span id="hintBtnText">日常のたとえヒントを見る（想起の手がかり）</span>
+            </button>
+            <button onclick="revealAnswer()" class="touch-btn w-full py-3.5 px-4 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-sky-500/20 text-sm transition">
+              答えをチェックする（アクティブリコール）
+            </button>
+          </div>
+
+          <!-- 解答後の自己評価ボタン (D-Lab式分散学習フィードバック) -->
+          <div id="postAnswerActions" class="hidden grid grid-cols-2 gap-3">
+            <button onclick="handleFeedback(false)" class="touch-btn py-3.5 px-4 bg-slate-800 hover:bg-rose-950 text-rose-400 font-bold rounded-xl border border-rose-900/40 text-sm flex items-center justify-center gap-1.5 transition">
+              <span>✕</span> もう一度（要復習）
+            </button>
+            <button onclick="handleFeedback(true)" class="touch-btn py-3.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-emerald-500/20 text-sm flex items-center justify-center gap-1.5 transition">
+              <span>✓</span> 覚えた！（即答できた）
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. トレース特訓モード (VBA経験者向け 擬似言語ビジュアライザー) -->
+    <div id="traceView" class="hidden flex-1 flex flex-col">
+      <div class="bg-[#131d33] border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs px-2 py-0.5 bg-amber-950/70 text-amber-400 border border-amber-800/60 rounded font-mono">科目B 攻略</span>
+            <span class="text-xs text-slate-400 font-mono">ワーキングメモリ解放モード</span>
+          </div>
+          <h2 class="text-base font-bold text-white mb-2">
+            📊 配列とループのステップ実行ビジュアライザー
+          </h2>
+          <p class="text-xs text-slate-300 leading-relaxed mb-4">
+            「頭の中だけで追おうとするとパンクする」のは自然な現象です。紙にメモする代わりになる<span class="text-sky-400 font-bold">変数の変化テーブル</span>を視覚化しました。
+          </p>
+
+          <!-- 擬似コード表示領域 -->
+          <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 font-mono text-xs sm:text-sm text-slate-200 mb-4 overflow-x-auto leading-relaxed">
+            <div id="line1" class="px-1 py-0.5 rounded transition">○ 整数型の配列: A = [15, 8, 22, 5]</div>
+            <div id="line2" class="px-1 py-0.5 rounded transition">○ 整数型: maxVal = A[0]</div>
+            <div id="line3" class="px-1 py-0.5 rounded transition">○ for (整数型: i を 1 から 3 まで 1 ずつ増やす)</div>
+            <div id="line4" class="px-1 py-0.5 rounded transition pl-4">if (A[i] > maxVal)</div>
+            <div id="line5" class="px-1 py-0.5 rounded transition pl-8">maxVal = A[i]</div>
+            <div id="line6" class="px-1 py-0.5 rounded transition pl-4">endif</div>
+            <div id="line7" class="px-1 py-0.5 rounded transition">endfor</div>
+          </div>
+
+          <!-- 配列の可視化スロット -->
+          <div class="mb-4">
+            <span class="text-[11px] text-slate-400 font-mono block mb-1.5">配列 A のメモリ状態:</span>
+            <div class="grid grid-cols-4 gap-2">
+              <div id="slot0" class="bg-slate-900 border-2 border-slate-700 p-2 text-center rounded-xl font-mono">
+                <span class="text-[10px] text-slate-500 block">A[0]</span>
+                <span class="text-base font-bold text-white">15</span>
+              </div>
+              <div id="slot1" class="bg-slate-900 border-2 border-slate-700 p-2 text-center rounded-xl font-mono">
+                <span class="text-[10px] text-slate-500 block">A[1]</span>
+                <span class="text-base font-bold text-white">8</span>
+              </div>
+              <div id="slot2" class="bg-slate-900 border-2 border-slate-700 p-2 text-center rounded-xl font-mono">
+                <span class="text-[10px] text-slate-500 block">A[2]</span>
+                <span class="text-base font-bold text-white">22</span>
+              </div>
+              <div id="slot3" class="bg-slate-900 border-2 border-slate-700 p-2 text-center rounded-xl font-mono">
+                <span class="text-[10px] text-slate-500 block">A[3]</span>
+                <span class="text-base font-bold text-white">5</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 変数テーブル (トレース表) -->
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs font-mono mb-4">
+            <div class="grid grid-cols-3 text-center border-b border-slate-800 pb-1 text-slate-400 font-bold">
+              <span>ループカウンタ i</span>
+              <span>比較対象 A[i]</span>
+              <span>現在最大値 maxVal</span>
+            </div>
+            <div class="grid grid-cols-3 text-center pt-1.5 text-sky-400 font-bold text-sm">
+              <span id="varI">-</span>
+              <span id="varAi">-</span>
+              <span id="varMaxVal">15</span>
+            </div>
+          </div>
+
+          <!-- ステータス解説 -->
+          <div id="traceExplanation" class="p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300 min-h-[50px] flex items-center">
+            「1ステップ進む」を押して、ループ処理と変数の移り変わりをトレースしてみましょう。
+          </div>
+        </div>
+
+        <!-- コントロールボタン -->
+        <div class="mt-4 flex gap-2">
+          <button onclick="resetTrace()" class="touch-btn py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+            最初から
+          </button>
+          <button id="stepBtn" onclick="nextTraceStep()" class="touch-btn flex-1 py-3 px-4 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-sm transition shadow-lg shadow-sky-500/20">
+            ▶ 1ステップ進む（トレース）
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 耳学15分モード (通勤オーディオブック Web Speech API) -->
+    <div id="audioView" class="hidden flex-1 flex flex-col justify-between">
+      <div class="bg-[#131d33] border border-slate-800 rounded-2xl p-6 shadow-xl flex-1 flex flex-col justify-center items-center text-center">
+        <!-- 音声波形アニメーション風アイコン -->
+        <div class="w-20 h-20 rounded-full bg-sky-500/10 border-2 border-sky-400/30 flex items-center justify-center mb-6 relative">
+          <span id="audioPulse" class="absolute inset-0 rounded-full bg-sky-400/20 animate-ping hidden"></span>
+          <span class="text-3xl">🎧</span>
+        </div>
+
+        <h2 class="text-lg font-bold text-white mb-2">
+          通勤15分 自動オーディオノート
+        </h2>
+        <p class="text-xs text-slate-300 leading-relaxed max-w-sm mb-6">
+          D-Labで実証された「音声による記憶定着」。画面を見ずにイヤホンを挿すだけで、最新頻出用語と日常のたとえ話を自動で連続再生します。
+        </p>
+
+        <!-- 再生中カード -->
+        <div class="w-full bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-left mb-6">
+          <div class="text-[10px] text-sky-400 font-mono uppercase tracking-wider mb-1">再生中トピック:</div>
+          <div id="audioCurrentTerm" class="text-base font-bold text-white mb-1">準備完了</div>
+          <div id="audioCurrentAnalogy" class="text-xs text-slate-400 line-clamp-3">「連続再生スタート」を押すと音声合成で読み上げを開始します。</div>
+        </div>
+
+        <!-- 再生コントロール -->
+        <div class="w-full space-y-3">
+          <button id="audioPlayBtn" onclick="toggleAudioPlayback()" class="touch-btn w-full py-4 px-6 bg-gradient-to-r from-sky-500 to-emerald-400 hover:opacity-90 text-slate-950 font-black rounded-xl text-base shadow-xl shadow-sky-500/20 transition flex items-center justify-center gap-2">
+            <span id="playIcon">▶</span> <span id="playBtnText">連続再生スタート（15分タイマー）</span>
+          </button>
+          <div class="flex items-center justify-between text-xs text-slate-400 px-2">
+            <span>再生速度:</span>
+            <div class="flex gap-2 font-mono">
+              <button onclick="setAudioRate(1.0)" class="rate-btn px-2.5 py-1 bg-sky-500 text-slate-950 font-bold rounded">1.0x</button>
+              <button onclick="setAudioRate(1.2)" class="rate-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded">1.2x</button>
+              <button onclick="setAudioRate(1.5)" class="rate-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded">1.5x</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- フッター -->
+  <footer class="border-t border-slate-800/80 px-4 py-3 bg-[#0a0f1d] text-center text-[11px] text-slate-400">
+    <p>Cloudflare Pages & GitHub Ready | FE試験合格（2026年11月/12月目標）</p>
+  </footer>
+
+  <!-- アプリケーションロジック -->
+  <script>
+    // ==========================================
+    // 1. D-Lab式 精緻化問題データベース (最新シラバス・頻出用語)
+    // ==========================================
+    const questions = [
+      {
+        id: 1,
+        category: "最新・セキュリティ",
+        question: "「社内ネットワークの内側であっても誰も無条件に信頼せず、すべてのアクセスを検証する」という次世代セキュリティの基本原則は？",
+        answer: "ゼロトラスト (Zero Trust)",
+        hint: "「境界線セキュリティ（お城と堀）」の崩壊。「家の中にいる家族でも、部屋に入るたびに顔認証する」ような考え方です。",
+        explanation: "従来型はVPNなどの「境界防御」でしたが、リモートワークやクラウド普及により境界が消滅。全てのリクエストを「認証・認可・暗号化」するゼロトラストモデルが基本情報・SGともに最頻出です。"
+      },
+      {
+        id: 2,
+        category: "最新・AIテクノロジ",
+        question: "生成AI（LLM）が自社データベースや社内文書などの外部情報を検索し、その検索結果を参照して正確な回答を生成させる技術は？",
+        answer: "RAG (Retrieval-Augmented Generation / 検索拡張生成)",
+        hint: "AIが「知ったかぶり（ハルシネーション）」をするのを防ぐため、「カンニングペーパー（社内資料）を検索して見てから答える」仕組みです。",
+        explanation: "LLMの学習データに含まれない最新情報や企業機密を扱うためのデファクトスタンダード技術です。科目Aの新傾向として極めて狙われやすいトピックです。"
+      },
+      {
+        id: 3,
+        category: "システム開発技術",
+        question: "OSの上に仮想のアプリケーション実行環境を軽量にパッケージングし、ホストOSのカーネルを共有することで高速に起動・移行できる技術は？",
+        answer: "コンテナ (Dockerなど)",
+        hint: "「OSまるごと仮想マシンを作る（重い一軒家）」のではなく、「部屋だけ間仕切りして家具（アプリ）を丸ごと引っ越しできるようにした軽量カプセル」です。",
+        explanation: "従来のハイパーバイザー型仮想化に比べ、リソース消費が極めて小さく起動が数秒で完了するため、クラウドネイティブ環境の主流となっています。"
+      },
+      {
+        id: 4,
+        category: "ネットワーク・Web",
+        question: "世界中に分散配置されたキャッシュサーバー群を利用し、ユーザーに物理的に近いサーバーからWebコンテンツを高速配信する仕組みは？",
+        answer: "CDN (Content Delivery Network)",
+        hint: "「東京の本店から全国に荷物を送ると遅いので、全国各地のコンビニ（分散サーバー）にコピーを置いてそこから即届ける」イメージです。（Cloudflareもこれです！）",
+        explanation: "オリジンサーバーの負荷軽減と、世界中どこからでも低遅延でのコンテンツ表示を実現します。Cloudflare PagesもCDN上で動いています。"
+      },
+      {
+        id: 5,
+        category: "セキュリティ・暗号",
+        question: "暗号化と復号で異なる鍵のペアを使用し、送信側は「相手の公開鍵」で暗号化し、受信側は「自分の秘密鍵」で復号する方式は？",
+        answer: "公開鍵暗号方式 (Public Key Cryptography)",
+        hint: "「南京錠（公開鍵）を街中に配っておき、誰でも箱に鍵をかけられるが、開けられる本物のカギ（秘密鍵）は自分しか持っていない」仕組みです。",
+        explanation: "共通鍵暗号方式の「鍵配送問題（どうやって安全に鍵を相手に渡すか）」を解決した画期的な技術。RSAなどが代表格です。"
+      },
+      {
+        id: 6,
+        category: "アルゴリズム・基礎理論",
+        question: "「後入れ先出し（LIFO: Last In First Out）」の特徴を持ち、最後に追加されたデータが最初に取り出されるデータ構造は？",
+        answer: "スタック (Stack)",
+        hint: "「机の上に積み上げたお皿や本」。上から積んでいき、取る時も一番上（一番最後に入れたもの）から取ります。ブラウザの『戻る』ボタンの仕組みです。",
+        explanation: "関数呼び出しのコールスタックや式の計算などに使われます。対になる「先入れ先出し（FIFO）」はキュー（Queue、行列に並ぶ順番）です。"
+      },
+      {
+        id: 7,
+        category: "プロジェクトマネジメント",
+        question: "短い期間（1〜4週間のスプリント）を反復しながら、動くソフトウェアを段階的にリリースしていく柔軟な開発手法は？",
+        answer: "アジャイル開発 (Agile Development / スクラムなど)",
+        hint: "「最初に完璧な巨大設計図を描く（ウォーターフォール）」のではなく、「小さく作ってすぐ使ってもらい、フィードバックを受けて改善する」開発スタイルです。",
+        explanation: "仕様変更に強く、不確実性の高いDXやWebサービス開発で標準となっています。試験でも「スプリント」「プロダクトバックログ」等の用語とセットで出題されます。"
+      },
+      {
+        id: 8,
+        category: "データベース",
+        question: "データの重複を排除し、データの整合性を維持しやすくするために、テーブルを一定のルールに従って分割・整理する作業は？",
+        answer: "正規化 (Normalization)",
+        hint: "「散らかった引き出しを、文房具・書類・コード類とジャンルごとに小箱に分けて整理し、同じものが二重に入らないようにする」ことです。",
+        explanation: "第1正規形（繰り返しの排除）、第2正規形（主キーへの完全関数従属）、第3正規形（推移的関数従属の排除）の手順が科目Aで頻出です。"
+      }
+    ];
+
+    // ==========================================
+    // 2. 想起道場コントローラ (Active Recall Engine)
+    // ==========================================
+    let curQIndex = 0;
+    let streak = 0;
+    let isHintOpen = false;
+
+    function renderQuestion() {
+      const q = questions[curQIndex];
+      document.getElementById('categoryBadge').innerText = q.category;
+      document.getElementById('currentIndex').innerText = curQIndex + 1;
+      document.getElementById('totalQuestions').innerText = questions.length;
+      document.getElementById('questionTitle').innerText = q.question;
+      document.getElementById('hintContent').innerText = q.hint;
+      document.getElementById('correctAnswer').innerText = q.answer;
+      document.getElementById('explanationText').innerText = q.explanation;
+
+      // プログレスバー更新
+      const percent = ((curQIndex) / questions.length) * 100;
+      document.getElementById('progressBar').style.width = percent + '%';
+
+      // 表示初期化
+      document.getElementById('hintBox').classList.add('hidden');
+      document.getElementById('hintBtnText').innerText = "日常のたとえヒントを見る（想起の手がかり）";
+      isHintOpen = false;
+      document.getElementById('answerBox').classList.add('hidden');
+      document.getElementById('preAnswerActions').classList.remove('hidden');
+      document.getElementById('postAnswerActions').classList.add('hidden');
+    }
+
+    function toggleHint() {
+      const hintBox = document.getElementById('hintBox');
+      isHintOpen = !isHintOpen;
+      if (isHintOpen) {
+        hintBox.classList.remove('hidden');
+        document.getElementById('hintBtnText').innerText = "ヒントを隠す";
+      } else {
+        hintBox.classList.add('hidden');
+        document.getElementById('hintBtnText').innerText = "日常のたとえヒントを見る（想起の手がかり）";
+      }
+    }
+
+    function revealAnswer() {
+      document.getElementById('answerBox').classList.remove('hidden');
+      document.getElementById('preAnswerActions').classList.add('hidden');
+      document.getElementById('postAnswerActions').classList.remove('hidden');
+    }
+
+    function handleFeedback(isCorrect) {
+      if (isCorrect) {
+        streak++;
+      } else {
+        streak = 0;
+        // 間違えた問題を末尾にプッシュして間隔反復（Spaced Repetition）
+        questions.push(questions[curQIndex]);
+      }
+      document.getElementById('streakCount').innerText = `🔥 連続正解 ${streak}`;
+
+      curQIndex = (curQIndex + 1) % questions.length;
+      renderQuestion();
+    }
+
+    // ==========================================
+    // 3. トレース特訓コントローラ (科目Bビジュアライザー)
+    // ==========================================
+    const traceSteps = [
+      {
+        line: 1,
+        desc: "整数型配列 A = [15, 8, 22, 5] がメモリに確保されました。",
+        highlightSlot: null,
+        i: "-",
+        Ai: "-",
+        maxVal: 15
+      },
+      {
+        line: 2,
+        desc: "先頭要素 A[0] の値 15 を初期の最大値 maxVal にセットします。",
+        highlightSlot: 0,
+        i: "-",
+        Ai: "-",
+        maxVal: 15
+      },
+      {
+        line: 3,
+        desc: "ループ開始: カウンタ i = 1 に設定されます。",
+        highlightSlot: 1,
+        i: "1",
+        Ai: "8",
+        maxVal: 15
+      },
+      {
+        line: 4,
+        desc: "条件判定: A[1] (8) > maxVal (15) は偽 (False) です。更新しません。",
+        highlightSlot: 1,
+        i: "1",
+        Ai: "8",
+        maxVal: 15
+      },
+      {
+        line: 3,
+        desc: "ループ継続: カウンタ i = 2 にインクリメントされます。",
+        highlightSlot: 2,
+        i: "2",
+        Ai: "22",
+        maxVal: 15
+      },
+      {
+        line: 5,
+        desc: "条件判定: A[2] (22) > maxVal (15) は真 (True)！ maxVal を 22 に更新！",
+        highlightSlot: 2,
+        i: "2",
+        Ai: "22",
+        maxVal: 22
+      },
+      {
+        line: 3,
+        desc: "ループ継続: カウンタ i = 3 にインクリメントされます。",
+        highlightSlot: 3,
+        i: "3",
+        Ai: "5",
+        maxVal: 22
+      },
+      {
+        line: 4,
+        desc: "条件判定: A[3] (5) > maxVal (22) は偽 (False)。更新しません。",
+        highlightSlot: 3,
+        i: "3",
+        Ai: "5",
+        maxVal: 22
+      },
+      {
+        line: 7,
+        desc: "【トレース完了】ループ終了。最大値 maxVal = 22 が確定しました！",
+        highlightSlot: 2,
+        i: "終了",
+        Ai: "-",
+        maxVal: 22
+      }
+    ];
+
+    let currentTraceIdx = 0;
+
+    function resetTrace() {
+      currentTraceIdx = 0;
+      applyTraceState(traceSteps[0]);
+    }
+
+    function nextTraceStep() {
+      currentTraceIdx = (currentTraceIdx + 1) % traceSteps.length;
+      applyTraceState(traceSteps[currentTraceIdx]);
+    }
+
+    function applyTraceState(step) {
+      // コードハイライト
+      for (let l = 1; l <= 7; l++) {
+        const el = document.getElementById('line' + l);
+        if (el) {
+          if (l === step.line) {
+            el.className = "px-1 py-0.5 rounded transition bg-sky-950 text-sky-300 font-bold border-l-2 border-sky-400";
+          } else {
+            el.className = "px-1 py-0.5 rounded transition text-slate-400";
+          }
+        }
+      }
+
+      // スロットハイライト
+      for (let s = 0; s < 4; s++) {
+        const slotEl = document.getElementById('slot' + s);
+        if (slotEl) {
+          if (step.highlightSlot === s) {
+            slotEl.className = "bg-sky-950/70 border-2 border-sky-400 p-2 text-center rounded-xl font-mono shadow-[0_0_12px_rgba(56,189,248,0.3)]";
+          } else {
+            slotEl.className = "bg-slate-900 border-2 border-slate-700 p-2 text-center rounded-xl font-mono";
+          }
+        }
+      }
+
+      // テーブル
+      document.getElementById('varI').innerText = step.i;
+      document.getElementById('varAi').innerText = step.Ai;
+      document.getElementById('varMaxVal').innerText = step.maxVal;
+      document.getElementById('traceExplanation').innerText = step.desc;
+
+      const stepBtn = document.getElementById('stepBtn');
+      if (currentTraceIdx === traceSteps.length - 1) {
+        stepBtn.innerText = "🔄 トレース完了（もう一度）";
+      } else {
+        stepBtn.innerText = "▶ 次の1ステップへ";
+      }
+    }
+
+    // ==========================================
+    // 4. 耳学15分コントローラ (Web Speech API)
+    // ==========================================
+    let isPlayingAudio = false;
+    let audioQIdx = 0;
+    let audioRate = 1.0;
+    let speechSynth = window.speechSynthesis;
+
+    function setAudioRate(rate) {
+      audioRate = rate;
+      document.querySelectorAll('.rate-btn').forEach(btn => {
+        if (parseFloat(btn.innerText) === rate) {
+          btn.className = "rate-btn px-2.5 py-1 bg-sky-500 text-slate-950 font-bold rounded";
+        } else {
+          btn.className = "rate-btn px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded";
+        }
+      });
+      if (isPlayingAudio) {
+        speechSynth.cancel();
+        playNextAudioClip();
+      }
+    }
+
+    function toggleAudioPlayback() {
+      if (!('speechSynthesis' in window)) {
+        alert("お使いのブラウザは音声合成に対応していません。");
+        return;
+      }
+
+      if (isPlayingAudio) {
+        speechSynth.cancel();
+        isPlayingAudio = false;
+        updateAudioUI(false);
+      } else {
+        isPlayingAudio = true;
+        updateAudioUI(true);
+        playNextAudioClip();
+      }
+    }
+
+    function updateAudioUI(playing) {
+      const pulse = document.getElementById('audioPulse');
+      const icon = document.getElementById('playIcon');
+      const text = document.getElementById('playBtnText');
+      if (playing) {
+        pulse.classList.remove('hidden');
+        icon.innerText = "⏸";
+        text.innerText = "再生一時停止";
+      } else {
+        pulse.classList.add('hidden');
+        icon.innerText = "▶";
+        text.innerText = "連続再生スタート（15分タイマー）";
+      }
+    }
+
+    function playNextAudioClip() {
+      if (!isPlayingAudio) return;
+
+      const q = questions[audioQIdx];
+      document.getElementById('audioCurrentTerm').innerText = q.answer;
+      document.getElementById('audioCurrentAnalogy').innerText = q.hint;
+
+      const textToSpeak = `問題。${q.question}。たとえ話のヒント。${q.hint}。正解は、${q.answer}です。`;
+      const utter = new SpeechSynthesisUtterance(textToSpeak);
+      utter.lang = 'ja-JP';
+      utter.rate = audioRate;
+
+      utter.onend = () => {
+        if (isPlayingAudio) {
+          audioQIdx = (audioQIdx + 1) % questions.length;
+          // 1.5秒の間隔を空けて次の単語へ（分散想起）
+          setTimeout(() => {
+            playNextAudioClip();
+          }, 1500);
+        }
+      };
+
+      utter.onerror = () => {
+        isPlayingAudio = false;
+        updateAudioUI(false);
+      };
+
+      speechSynth.speak(utter);
+    }
+
+    // ==========================================
+    // 5. モード切り替えタブ
+    // ==========================================
+    function switchMode(mode) {
+      const recallView = document.getElementById('recallView');
+      const traceView = document.getElementById('traceView');
+      const audioView = document.getElementById('audioView');
+
+      const tabRecall = document.getElementById('tabRecall');
+      const tabTrace = document.getElementById('tabTrace');
+      const tabAudio = document.getElementById('tabAudio');
+
+      const tabs = [tabRecall, tabTrace, tabAudio];
+      tabs.forEach(t => {
+        t.className = "px-3 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white";
+      });
+
+      recallView.classList.add('hidden');
+      traceView.classList.add('hidden');
+      audioView.classList.add('hidden');
+
+      if (mode === 'recall') {
+        recallView.classList.remove('hidden');
+        tabRecall.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow";
+      } else if (mode === 'trace') {
+        traceView.classList.remove('hidden');
+        tabTrace.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow";
+        resetTrace();
+      } else if (mode === 'audio') {
+        audioView.classList.remove('hidden');
+        tabAudio.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow";
+      }
+    }
+
+    // 初期化
+    window.addEventListener('DOMContentLoaded', () => {
+      renderQuestion();
+    });
+  </script>
+</body>
+</html>
