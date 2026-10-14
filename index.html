@@ -300,13 +300,25 @@
             <span id="audioTrackCounter" class="text-slate-400">1 / 8</span>
           </div>
 
-          <!-- 再生中カード -->
-          <div class="w-full bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-left mb-4 shadow-inner">
-            <div class="text-[10px] text-sky-400 font-mono uppercase tracking-wider mb-1">再生中の重要キーワード:</div>
-            <div id="audioCurrentTerm" class="text-lg font-bold text-white mb-2 font-mono">準備完了</div>
-            <div class="text-[11px] text-slate-400 leading-relaxed border-t border-slate-850 pt-2" id="audioCurrentAnalogy">
-              「再生スタート」を押すと、高音質な日本語音声で「問題 ➔ ヒント ➔ 正解」を自動連続再生します。
+          <!-- 再生中カード（重要キーワード） -->
+          <div class="w-full bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-left mb-3 shadow-inner">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[10px] text-sky-400 font-mono uppercase tracking-wider">再生中の重要キーワード:</span>
+              <button id="analogyToggleBtn" onclick="toggleAnalogyCard()" class="touch-btn text-[11px] px-2.5 py-1 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm">
+                <span>💡 ヒント: OFF</span>
+              </button>
             </div>
+            <div id="audioCurrentTerm" class="text-lg font-bold text-white font-mono">準備完了</div>
+          </div>
+
+          <!-- たとえ話ヒント枠（デフォルト非表示・トグルで表示継続） -->
+          <div id="audioAnalogyCard" class="hidden w-full bg-slate-900/90 p-3.5 rounded-xl border border-sky-900/50 text-left mb-3 shadow-md">
+            <div class="flex items-center gap-1.5 text-xs font-bold text-sky-400 mb-1">
+              <span>💡</span> 日常のたとえ話ヒント（精緻化）
+            </div>
+            <p id="audioAnalogyText" class="text-xs text-slate-300 leading-relaxed">
+              「再生スタート」を押すと、出題に連動してヒントが表示されます。
+            </p>
           </div>
 
           <!-- 設定エリア（シャッフル・速度・想起の間） -->
@@ -902,8 +914,32 @@
     let isShuffle = false;
     let shufflePlaylist = [];
     let shufflePointer = 0;
+    let showAnalogy = localStorage.getItem('fe_show_analogy') === 'true';
     const synth = window.speechSynthesis;
     const silentAudio = document.getElementById('silentAudioPlayer');
+
+    // たとえ話ヒント枠の表示・非表示トグル（LocalStorage永続化）
+    function toggleAnalogyCard() {
+      showAnalogy = !showAnalogy;
+      localStorage.setItem('fe_show_analogy', showAnalogy);
+      updateAnalogyUI();
+    }
+
+    function updateAnalogyUI() {
+      const btn = document.getElementById('analogyToggleBtn');
+      const card = document.getElementById('audioAnalogyCard');
+      if (!btn || !card) return;
+
+      if (showAnalogy) {
+        card.classList.remove('hidden');
+        btn.className = "touch-btn text-[11px] px-2.5 py-1 rounded-lg font-mono font-bold transition bg-sky-500 text-slate-950 border border-sky-400 flex items-center gap-1 shadow-sm";
+        btn.innerHTML = "<span>💡 ヒント: ON</span>";
+      } else {
+        card.classList.add('hidden');
+        btn.className = "touch-btn text-[11px] px-2.5 py-1 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm";
+        btn.innerHTML = "<span>💡 ヒント: OFF</span>";
+      }
+    }
 
     // 自動で最適な日本語音声を探索（UIドロップダウンは撤去）
     function initBestVoice() {
@@ -1098,7 +1134,8 @@
     function updateAudioDisplay() {
       const q = questions[audioQIdx];
       document.getElementById('audioCurrentTerm').innerText = q.answer;
-      document.getElementById('audioCurrentAnalogy').innerText = q.hint;
+      const analogyTextEl = document.getElementById('audioAnalogyText');
+      if (analogyTextEl) analogyTextEl.innerText = q.hint;
       const counterEl = document.getElementById('audioTrackCounter');
       if (isShuffle) {
         counterEl.innerHTML = `<span class="text-sky-400 font-bold">🔀 ${shufflePointer + 1} / ${questions.length}</span>`;
@@ -1254,6 +1291,7 @@
     // 初期化
     window.addEventListener('DOMContentLoaded', () => {
       renderQuestion();
+      updateAnalogyUI();
       setTimeout(initBestVoice, 300);
     });
   </script>
