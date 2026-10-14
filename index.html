@@ -300,25 +300,54 @@
             <span id="audioTrackCounter" class="text-slate-400">1 / 8</span>
           </div>
 
-          <!-- 再生中カード（重要キーワード） -->
+          <!-- 1. 出題中の問題カード（常時表示・状況把握） -->
           <div class="w-full bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-left mb-3 shadow-inner">
-            <div class="flex items-center justify-between mb-1.5">
-              <span class="text-[10px] text-sky-400 font-mono uppercase tracking-wider">再生中の重要キーワード:</span>
+            <div class="flex items-center justify-between mb-2">
+              <span id="audioCategoryBadge" class="text-[10px] px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800 font-mono">
+                最新・セキュリティ
+              </span>
               <button id="analogyToggleBtn" onclick="toggleAnalogyCard()" class="touch-btn text-[11px] px-2.5 py-1 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm">
                 <span>💡 ヒント: OFF</span>
               </button>
             </div>
-            <div id="audioCurrentTerm" class="text-lg font-bold text-white font-mono">準備完了</div>
+            <h3 id="audioQuestionTitle" class="text-sm sm:text-base font-bold text-white leading-relaxed">
+              「再生スタート」を押すと問題が出題されます。
+            </h3>
           </div>
 
-          <!-- たとえ話ヒント枠（デフォルト非表示・トグルで表示継続） -->
+          <!-- 2. たとえ話ヒント枠（トグル表示・精緻化） -->
           <div id="audioAnalogyCard" class="hidden w-full bg-slate-900/90 p-3.5 rounded-xl border border-sky-900/50 text-left mb-3 shadow-md">
             <div class="flex items-center gap-1.5 text-xs font-bold text-sky-400 mb-1">
               <span>💡</span> 日常のたとえ話ヒント（精緻化）
             </div>
             <p id="audioAnalogyText" class="text-xs text-slate-300 leading-relaxed">
-              「再生スタート」を押すと、出題に連動してヒントが表示されます。
+              出題に連動してヒントが表示されます。
             </p>
+          </div>
+
+          <!-- 3. 正解 ＆ 科学的解説カード（音声同期オートアンロック） -->
+          <div id="audioAnswerCard" class="w-full bg-[#11192e] p-3.5 rounded-xl border border-slate-800 text-left mb-3 shadow-md transition-all duration-300">
+            <!-- マスク状態（出題中・思考中のネタバレ防止） -->
+            <div id="audioAnswerMask" onclick="revealAudioAnswerNow()" class="cursor-pointer py-2.5 px-3 bg-slate-900/90 border border-dashed border-slate-700 hover:border-sky-500/50 rounded-lg text-center transition flex items-center justify-between">
+              <span class="text-xs text-slate-400 font-mono flex items-center gap-1.5">
+                <span>🔒</span> 正解 ＆ 解説（音声正解フェーズで自動解除）
+              </span>
+              <span class="text-[10px] text-sky-400 underline font-medium">今すぐ見る</span>
+            </div>
+
+            <!-- アンロック状態（正解発表フェーズで自動開示） -->
+            <div id="audioAnswerRevealed" class="hidden space-y-2.5">
+              <div class="border-b border-slate-800/80 pb-1">
+                <span class="text-[10px] text-emerald-400 font-mono font-bold uppercase tracking-wider block mb-0.5">✓ 正解キーワード</span>
+                <p id="audioRevealedTerm" class="text-base sm:text-lg font-bold text-white font-mono text-emerald-300"></p>
+              </div>
+              
+              <!-- 科学的解説（なぜ重要か？） -->
+              <div class="p-2.5 bg-slate-950/70 rounded-lg border border-slate-800/80 text-xs text-slate-300 leading-relaxed">
+                <span class="text-[10px] font-bold text-sky-400 block mb-1">🔍 科学的解説（なぜ重要か？）</span>
+                <p id="audioExplanationText"></p>
+              </div>
+            </div>
           </div>
 
           <!-- 設定エリア（シャッフル・速度・想起の間） -->
@@ -941,6 +970,25 @@
       }
     }
 
+    // 正解 ＆ 科学的解説カードのロック / アンロック制御（オートシンク）
+    function lockAudioAnswer() {
+      const mask = document.getElementById('audioAnswerMask');
+      const revealed = document.getElementById('audioAnswerRevealed');
+      if (mask && revealed) {
+        mask.classList.remove('hidden');
+        revealed.classList.add('hidden');
+      }
+    }
+
+    function revealAudioAnswerNow() {
+      const mask = document.getElementById('audioAnswerMask');
+      const revealed = document.getElementById('audioAnswerRevealed');
+      if (mask && revealed) {
+        mask.classList.add('hidden');
+        revealed.classList.remove('hidden');
+      }
+    }
+
     // 自動で最適な日本語音声を探索（UIドロップダウンは撤去）
     function initBestVoice() {
       if (!synth) return;
@@ -1070,6 +1118,7 @@
       if (isPlayingAudio) {
         playSpeechSequence();
       } else {
+        lockAudioAnswer();
         updateAudioDisplay();
       }
     }
@@ -1133,10 +1182,19 @@
 
     function updateAudioDisplay() {
       const q = questions[audioQIdx];
-      document.getElementById('audioCurrentTerm').innerText = q.answer;
-      const analogyTextEl = document.getElementById('audioAnalogyText');
-      if (analogyTextEl) analogyTextEl.innerText = q.hint;
+      const qTitle = document.getElementById('audioQuestionTitle');
+      const catBadge = document.getElementById('audioCategoryBadge');
+      const analogyText = document.getElementById('audioAnalogyText');
+      const revealedTerm = document.getElementById('audioRevealedTerm');
+      const explanation = document.getElementById('audioExplanationText');
       const counterEl = document.getElementById('audioTrackCounter');
+
+      if (qTitle) qTitle.innerText = q.question;
+      if (catBadge) catBadge.innerText = q.category;
+      if (analogyText) analogyText.innerText = q.hint;
+      if (revealedTerm) revealedTerm.innerText = q.answer;
+      if (explanation) explanation.innerText = q.explanation;
+
       if (isShuffle) {
         counterEl.innerHTML = `<span class="text-sky-400 font-bold">🔀 ${shufflePointer + 1} / ${questions.length}</span>`;
       } else {
@@ -1166,6 +1224,7 @@
       if (!isPlayingAudio) return;
 
       clearAllSpeech();
+      lockAudioAnswer(); // 出題開始時は正解・解説をマスク（ネタバレ防止）
       updateAudioDisplay();
       setupMediaSession();
       document.getElementById('thinkingIndicator').classList.add('hidden');
@@ -1198,9 +1257,10 @@
               if (!isPlayingAudio) return;
               document.getElementById('thinkingIndicator').classList.add('hidden');
 
-              // Step 4: 正解発表
+              // Step 4: 正解発表（ここで画面の正解 ＆ 解説をオートアンロック！）
               document.getElementById('speechPhaseBadge').innerText = "【3/3】正解発表";
               document.getElementById('speechPhaseBadge').className = "text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 font-mono border border-emerald-800";
+              revealAudioAnswerNow();
 
               speakText(script.a, 1.08, 1.0, () => {
                 if (!isPlayingAudio) return;
@@ -1284,6 +1344,7 @@
       } else if (mode === 'audio') {
         audioView.classList.remove('hidden');
         tabAudio.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow";
+        lockAudioAnswer();
         updateAudioDisplay();
       }
     }
@@ -1292,6 +1353,8 @@
     window.addEventListener('DOMContentLoaded', () => {
       renderQuestion();
       updateAnalogyUI();
+      lockAudioAnswer();
+      updateAudioDisplay();
       setTimeout(initBestVoice, 300);
     });
   </script>
