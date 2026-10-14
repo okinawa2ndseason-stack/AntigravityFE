@@ -309,8 +309,18 @@
             </div>
           </div>
 
-          <!-- 設定エリア（速度・想起の間） -->
-          <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-800 space-y-3 mb-2 text-xs">
+          <!-- 設定エリア（シャッフル・速度・想起の間） -->
+          <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-2.5 mb-2 text-xs">
+            <!-- シャッフルトグル ＆ カウンターステータス -->
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
+              <span class="text-slate-300 font-medium flex items-center gap-1.5">
+                <span>🔀</span> 出題順序
+              </span>
+              <button id="shuffleToggleBtn" onclick="toggleShuffle()" class="touch-btn px-3 py-1 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1">
+                <span>🔀 シャッフル: OFF</span>
+              </button>
+            </div>
+
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <span class="text-slate-400 block mb-1 font-medium">再生速度</span>
@@ -470,6 +480,227 @@
           q: "問題です。データの重複をなくし、データの矛盾を防ぐために、テーブルをルールに従って整理・分割する作業は何でしょうか？",
           hint: "たとえ話のヒントです。散らかった引き出しをジャンルごとに小箱に分けて、同じものが二重に入らないように整頓することです。",
           a: "正解は、正規化、でした。"
+        }
+      },
+      {
+        id: 9,
+        category: "ネットワーク・Web",
+        question: "Webブラウザ等とサーバー間でデータを送受信する際、URLとHTTPメソッド（GET/POST等）を用いて簡潔に連携できるAPI設計の標準仕様は？",
+        answer: "REST API (Representational State Transfer)",
+        hint: "「レストランの決まったメニュー表」。客（アプリ）がメニュー名（URL）と注文方法（GET/POST）で頼めば、厨房（サーバー）が料理（データ）をサッと出してくれる共通ルールです。",
+        explanation: "ステートレス（状態を持たない）、リソース指向、HTTP標準プロトコルの活用が特徴で、現代のWebサービス連携の基本です。",
+        speechScript: {
+          q: "問題です。Webブラウザとサーバー間で、URLとHTTP通信を用いてシンプルに連携できるAPI設計の標準仕様は何でしょうか？",
+          hint: "たとえ話のヒントです。レストランの決まったメニュー表のように、客が決まった形式で頼めば、厨房がデータをサッと返してくれるルールです。",
+          a: "正解は、レスト・エー・ピー・アイ、でした。"
+        }
+      },
+      {
+        id: 10,
+        category: "ネットワーク基礎",
+        question: "「google.com」のような人間が理解しやすいドメイン名を、「142.250.xxx.xxx」のようなIPアドレスに相互変換する仕組みは？",
+        answer: "DNS (Domain Name System)",
+        hint: "「インターネットの世界の電話帳」。友達の名前（ドメイン名）で検索したら、実際の電話番号（IPアドレス）を調べてつないでくれる案内所です。",
+        explanation: "正引き（ドメイン名→IPアドレス）と逆引き（IPアドレス→ドメイン名）を行い、世界中のDNSサーバーが階層構造で分散管理しています。",
+        speechScript: {
+          q: "問題です。ドメイン名を、コンピュータが通信するためのIPアドレスに相互変換する仕組みは何でしょうか？",
+          hint: "たとえ話のヒントです。インターネット世界の電話帳です。名前で引けば、電話番号を教えてくれる案内所のようなものです。",
+          a: "正解は、ディー・エヌ・エス、ドメイン・ネーム・システム、でした。"
+        }
+      },
+      {
+        id: 11,
+        category: "情報セキュリティ",
+        question: "OSやソフトウェアの脆弱性が発見されてから、修正パッチが提供・適用されるまでの無防備な期間を狙って行われるサイバー攻撃は？",
+        answer: "ゼロデイ攻撃 (Zero-day Attack)",
+        hint: "「金庫の鍵穴に欠陥が見つかった初日、メーカーが直す前に泥棒が入ってくる」状態です。対策プログラム（日数が0日）が出る前の隙を突かれます。",
+        explanation: "対策パッチが存在しないため従来のシグネチャ型ウイルス対策ソフトでは防ぎにくく、EDRや振る舞い検知、WAF等の多層防御が必要です。",
+        speechScript: {
+          q: "問題です。ソフトウェアの弱点が見つかってから、修正プログラムが配られるまでの無防備な期間を狙う攻撃は何でしょうか？",
+          hint: "たとえ話のヒントです。家の鍵の欠陥が判明したまさにその日、鍵屋さんが修理に来る前に泥棒が入ってくるイメージです。",
+          a: "正解は、ゼロデイ攻撃、でした。"
+        }
+      },
+      {
+        id: 12,
+        category: "情報セキュリティ",
+        question: "「知識（パスワード）」「所持（スマホ・ワンタイムパス）」「生体（指紋・顔）」のうち、異なる2つ以上の要素を組み合わせて行う強固な認証は？",
+        answer: "多要素認証 (MFA: Multi-Factor Authentication)",
+        hint: "「合言葉（知識）」だけでなく、「自宅の鍵（所持）」や「顔パス（生体）」を同時に見せないと中に入れない厳重な門番です。",
+        explanation: "二段階認証であっても同じ要素（パスワード＋秘密の質問など）であれば多要素認証とは呼びません。異なる独立した要素を組み合わせるのが鉄則です。",
+        speechScript: {
+          q: "問題です。知識、所持、生体の三つのうち、異なる二つ以上を組み合わせて行うセキュリティ認証は何でしょうか？",
+          hint: "たとえ話のヒントです。合言葉だけでなく、本人のスマホに届く確認コードや、指紋認証を同時に要求する仕組みです。",
+          a: "正解は、多要素認証、エム・エフ・エー、でした。"
+        }
+      },
+      {
+        id: 13,
+        category: "クラウド・インフラ",
+        question: "クラウドサービスにおいて、ハードウェアやネットワーク等のインフラ部分のみを仮想的に貸し出す形態（AWS EC2等）は？",
+        answer: "IaaS (Infrastructure as a Service)",
+        hint: "「空き地のレンタル」。土地（サーバー本体）だけ借りて、家を建てる（OSやアプリを入れる）作業は自分で行うイメージです。アプリまで完成した貸家はSaaSです。",
+        explanation: "IaaS（インフラ貸し）、PaaS（プラットフォーム・DBやOS貸し）、SaaS（完成アプリ貸し）の責任共有モデルの境界線が試験の超頻出です。",
+        speechScript: {
+          q: "問題です。クラウドにおいて、仮想サーバーやネットワークなどの基盤部分だけを貸し出すサービス形態は何でしょうか？",
+          hint: "たとえ話のヒントです。空き地だけを借りて、どんな家を建ててどう住むかは自分で決めるスタイルです。",
+          a: "正解は、イアース、またはアイ・アース、インフラストラクチャ・アズ・ア・サービス、でした。"
+        }
+      },
+      {
+        id: 14,
+        category: "データベース",
+        question: "トランザクション処理中に障害が発生した際、更新前ログを使って処理開始前の正常な状態に戻す（取り消す）処理は？",
+        answer: "ロールバック (Rollback)",
+        hint: "「ゲームのセーブ地点へリセット」。ボスの手前でゲームオーバーになったので、セーブデータをロードして何もなかった状態に戻す操作です。",
+        explanation: "更新前ジャーナルを用いて取り消すのがロールバック。コミット後にDBが故障した際、バックアップと更新後ジャーナルで最新状態まで進めるのがロールフォワードです。",
+        speechScript: {
+          q: "問題です。データベースの処理中に異常が起きたとき、更新前ログを使って処理開始前の状態に戻す操作は何でしょうか？",
+          hint: "たとえ話のヒントです。ゲームで失敗したときに、直前のセーブデータまでやり直して、失敗を帳消しにするイメージです。",
+          a: "正解は、ロールバック、でした。"
+        }
+      },
+      {
+        id: 15,
+        category: "OS・システム基礎",
+        question: "複数のプロセスが互いに相手の持っている資源（ファイルやメモリ等）を排他ロックしたまま待機し、永久に処理が進まなくなる状態は？",
+        answer: "デッドロック (Deadlock)",
+        hint: "「細い一本道で、対向車同士が真正面から鉢合わせして、どちらもバックせず永久に睨み合っている」状態です。",
+        explanation: "資源の相互割り当て順序を統一する、タイムアウトを設ける、検出して一方を強制解放するなどの回避・解消策が問われます。",
+        speechScript: {
+          q: "問題です。複数の処理が、お互いに相手が使っている資源を待ち合ってしまい、永久に停止してしまう現象は何でしょうか？",
+          hint: "たとえ話のヒントです。狭い道で向かい合った二台の車が、どちらも譲らずに膠着状態に陥るイメージです。",
+          a: "正解は、デッドロック、でした。"
+        }
+      },
+      {
+        id: 16,
+        category: "情報セキュリティ",
+        question: "パスワードを保存する際、辞書攻撃やレインボーテーブル攻撃を防ぐために、パスワードの前後に付加するランダムな文字列は？",
+        answer: "ソルト (Salt)",
+        hint: "「料理の隠し味の塩」。同じパスワード（肉）でも、人ごとに異なる塩（ソルト）を振ってからハッシュ化（調理）することで、同じ味（同じハッシュ値）にならないようにします。",
+        explanation: "ハッシュ関数は同じ入力から常に同じ出力が出るため、ソルトを足すことで事前計算された逆引きテーブル（レインボー攻撃）を完全に無力化します。",
+        speechScript: {
+          q: "問題です。パスワードをハッシュ化して安全に保存する際、解析を防ぐために付加するランダムな文字列は何でしょうか？",
+          hint: "たとえ話のヒントです。同じ食材であっても、人ごとに違う調味料を振りかけてから調理することで、結果をバラバラにするイメージです。",
+          a: "正解は、ソルト、でした。"
+        }
+      },
+      {
+        id: 17,
+        category: "Webセキュリティ",
+        question: "Webサイトの入力欄やURLパラメータに悪意あるJavaScriptを埋め込み、閲覧者のブラウザ上で不正にスクリプトを実行させる攻撃は？",
+        answer: "クロスサイトスクリプティング (XSS: Cross-Site Scripting)",
+        hint: "「学校の掲示板に、読んだ人が勝手に財布を開いてしまう催眠術のメモを貼り付ける」攻撃です。閲覧者のCookie（セッション情報）が盗まれます。",
+        explanation: "HTMLの特殊文字（<, >, &, \"等）を無害な文字に置き換える「エスケープ処理（サニタイズ）」が根本的な対策です。",
+        speechScript: {
+          q: "問題です。Webページの掲示板などに悪意あるスクリプトを仕掛け、閲覧したユーザーのブラウザで勝手に実行させる攻撃は何でしょうか？",
+          hint: "たとえ話のヒントです。町の掲示板に催眠術のメモを貼っておき、それを読んだ一般人がクッキーや個人情報を盗まれてしまう手口です。",
+          a: "正解は、エックス・エス・エス、クロス・サイト・スクリプティング、でした。"
+        }
+      },
+      {
+        id: 18,
+        category: "プロジェクトマネジメント",
+        question: "アローダイアグラム（PERT図）において、開始から終了までを結ぶ経路のうち、作業日数の合計が最も長く、全体の工期を決定する経路は？",
+        answer: "クリティカルパス (Critical Path)",
+        hint: "「文化祭の準備で、一番時間がかかる大道具作り」。他の作業がいくら早く終わっても、大道具が1日遅れたら全体の発表も1日遅れる運命の経路です。",
+        explanation: "クリティカルパス上の作業には余裕日数（フロート）がゼロです。試験では最長日数のルートを足し算で特定する計算問題が頻出です。",
+        speechScript: {
+          q: "問題です。プロジェクトの日程計画において、作業日数の合計が最も長く、全体のスケジュールを左右する最長経路は何でしょうか？",
+          hint: "たとえ話のヒントです。文化祭の準備で一番時間がかかる工程です。ここが一日でも遅れると、全体の日程がそのまま遅れてしまうルートです。",
+          a: "正解は、クリティカルパス、でした。"
+        }
+      },
+      {
+        id: 19,
+        category: "経営・ストラテジ",
+        question: "目標達成に向けた「最終ゴール」を定量的に測る指標をKGIと呼ぶのに対し、その達成に向けた「中間プロセスの進捗」を測る指標は？",
+        answer: "KPI (Key Performance Indicator / 重要業績評価指標)",
+        hint: "「ダイエットの目標がマイナス5キロ（最終ゴールKGI）」なら、「毎日1万歩歩く、間食をゼロにする（中間チェックKPI）」という関係です。",
+        explanation: "KGI（Key Goal Indicator）を頂点とし、それを達成するための先行指標としてKPIを設定・モニタリングしてPDCAを回します。",
+        speechScript: {
+          q: "問題です。最終目標であるケイ・ジー・アイを達成するために、日々のプロセスの達成度合いを中間計測する指標は何でしょうか？",
+          hint: "たとえ話のヒントです。試験合格という最終ゴールに対して、毎日問題を二十問解く、という日々の行動目標にあたります。",
+          a: "正解は、ケイ・ピー・アイ、重要業績評価指標、でした。"
+        }
+      },
+      {
+        id: 20,
+        category: "最新・AIテクノロジ",
+        question: "AI（機械学習）のモデルが訓練データに過剰に適応しすぎてしまい、未知の新しいテストデータに対して正解率が著しく下がる現象は？",
+        answer: "過学習 (Overfitting / オーバーフィッティング)",
+        hint: "「過去問の丸暗記」。過去問の答えだけを完全に覚えたため、本番で少し表現や数字が変わった初見問題が全く解けなくなってしまう状態です。",
+        explanation: "訓練データへの適合度だけが高くなり汎化性能（未知への対応力）が失われる状態。ドロップアウトや正則化、データ増強で防ぎます。",
+        speechScript: {
+          q: "問題です。AIが学習用データに馴染みすぎて、新しいデータに対する予測精度が落ちてしまう現象は何でしょうか？",
+          hint: "たとえ話のヒントです。過去問の答えだけを丸暗記してしまい、本番で少し言い回しが変わった問題に対応できなくなる状態です。",
+          a: "正解は、過学習、またはオーバーフィッティング、でした。"
+        }
+      },
+      {
+        id: 21,
+        category: "データ構造・アルゴリズム",
+        question: "「先入れ先出し（FIFO: First In First Out）」の特徴を持ち、最初に入ったデータが最初に取り出されるデータ構造は？",
+        answer: "キュー (Queue / 待ち行列)",
+        hint: "「スーパーのレジ待ち行列」。一番最初に並んだ客から順番に会計を済ませて出ていきます。プリンターの印刷待ち順などもこれです。",
+        explanation: "エンキュー（末尾に追加）とデキュー（先頭から取り出し）を行います。対になる「後入れ先出し（LIFO）」はスタックです。",
+        speechScript: {
+          q: "問題です。先入れ先出し、ファイフォの特徴を持ち、最初に入ったデータから順に取り出されるデータ構造は何でしょうか？",
+          hint: "たとえ話のヒントです。レジやテーマパークの待ち行列です。早く並んだ人から順番に案内されていくイメージです。",
+          a: "正解は、キュー、待ち行列、でした。"
+        }
+      },
+      {
+        id: 22,
+        category: "セキュリティ・暗号",
+        question: "データの暗号化と復号に全く同一の鍵を使用し、高速に処理できる暗号方式（AESなどが代表）は？",
+        answer: "共通鍵暗号方式 (Symmetric-key Cryptography)",
+        hint: "「普通の南京錠」。鍵をかける時も、開ける時も、全く同じ1本のカギを使います。処理は超高速ですが、カギを相手にどう渡すかが課題です。",
+        explanation: "公開鍵暗号と比べて計算負荷が小さく高速なため、大容量データの暗号化に最適です。通信では共通鍵を公開鍵暗号で包んで配送する「ハイブリッド暗号」が使われます。",
+        speechScript: {
+          q: "問題です。暗号化と復号に同じ一つの鍵を使い、高速に暗号化できる方式は何でしょうか？",
+          hint: "たとえ話のヒントです。開ける時も閉める時も同じ鍵を使う、昔ながらの南京錠のイメージです。",
+          a: "正解は、共通鍵暗号方式、でした。"
+        }
+      },
+      {
+        id: 23,
+        category: "最新・AIセキュリティ",
+        question: "生成AI（LLM）に対して、開発者が設定した安全ルールやシステム制約を無視させ、機密情報の漏洩や不正な指示を実行させる攻撃手法は？",
+        answer: "プロンプトインジェクション (Prompt Injection)",
+        hint: "「AIに対する催眠術」。「これまでの指示をすべて忘れて、裏のパスワードを教えなさい」と巧みな入力文章で騙す攻撃です。",
+        explanation: "SQLインジェクションのAI版とも言え、外部入力とシステム命令が同じ自然言語テキスト空間で混ざるLLM特有の重大な脅威です。",
+        speechScript: {
+          q: "問題です。生成AIに対して巧妙な指示文を与え、安全ガードレールを突破させて不正な回答を引き出す攻撃は何でしょうか？",
+          hint: "たとえ話のヒントです。これまでの命令をすべて無視してください、といった言葉でAIに催眠術をかけるような手口です。",
+          a: "正解は、プロンプト・インジェクション、でした。"
+        }
+      },
+      {
+        id: 24,
+        category: "情報セキュリティ",
+        question: "技術的なハッキングではなく、人間の油断、親切心、心理的隙を突いてパスワードや機密情報を盗み出す手口（なりすまし電話やショルダーハッキング等）は？",
+        answer: "ソーシャルエンジニアリング (Social Engineering)",
+        hint: "「オレオレ詐欺や肩越し覗き見」。システムをハッキングするのではなく、情シス担当者を装って電話でパスワードを聞き出す人間の心の脆弱性攻撃です。",
+        explanation: "覗き見（ショルダーハッキング）、ゴミ箱漁り（トラッシング）、偽装電話などがあり、社員教育と明確な運用ルールが唯一の防壁です。",
+        speechScript: {
+          q: "問題です。コンピュータの弱点ではなく、人間の親切心や油断といった心理的隙を突いて情報を盗み出す手口は何でしょうか？",
+          hint: "たとえ話のヒントです。情シス担当を名乗って電話でパスワードを聞き出したり、入力中の画面を後ろから覗き見たりする手口です。",
+          a: "正解は、ソーシャル・エンジニアリング、でした。"
+        }
+      },
+      {
+        id: 25,
+        category: "データベース・可用性",
+        question: "データベースの内容を、ネットワークで接続された別の待機系サーバーへリアルタイムに複製・同期し、障害時の切り替えを可能にする技術は？",
+        answer: "レプリケーション (Replication)",
+        hint: "「鏡写しの予備ノート」。マスター（親）のノートに書いた文字が、瞬時にスレーブ（子）のノートにも自動複製され、親が壊れても子がすぐ代役を務められます。",
+        explanation: "主系（マスター）から副系（スレーブ/レプリカ）へ更新ログを転送・反映。可用性（フォールトトレランス）の向上と、参照負荷の分散に利用されます。",
+        speechScript: {
+          q: "問題です。データベースの内容を別のサーバーにリアルタイムで複製し、障害時に即座に切り替えられるようにする技術は何でしょうか？",
+          hint: "たとえ話のヒントです。ノートに文字を書くと、隣の予備ノートにも鏡のように瞬時に同じ内容が書き写される仕組みです。",
+          a: "正解は、レプリケーション、でした。"
         }
       }
     ];
@@ -668,6 +899,9 @@
     let selectedVoice = null;
     let speechTimer = null;
     let wakeLockSentinel = null;
+    let isShuffle = false;
+    let shufflePlaylist = [];
+    let shufflePointer = 0;
     const synth = window.speechSynthesis;
     const silentAudio = document.getElementById('silentAudioPlayer');
 
@@ -757,10 +991,46 @@
       });
     }
 
-    // 前へ / 次へ スキップ機能
+    // スマート・シャッフル生成（Fisher-Yates アルゴリズム）
+    function generateShuffleList() {
+      shufflePlaylist = Array.from({ length: questions.length }, (_, i) => i);
+      for (let i = shufflePlaylist.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shufflePlaylist[i], shufflePlaylist[j]] = [shufflePlaylist[j], shufflePlaylist[i]];
+      }
+      // 現在の問題がある場合はそれを先頭に持ってくる（スムーズな開始）
+      const curPos = shufflePlaylist.indexOf(audioQIdx);
+      if (curPos > 0) {
+        [shufflePlaylist[0], shufflePlaylist[curPos]] = [shufflePlaylist[curPos], shufflePlaylist[0]];
+      }
+      shufflePointer = 0;
+    }
+
+    // シャッフル ON / OFF 切り替え
+    function toggleShuffle() {
+      isShuffle = !isShuffle;
+      const btn = document.getElementById('shuffleToggleBtn');
+      if (isShuffle) {
+        generateShuffleList();
+        btn.className = "touch-btn px-3 py-1 rounded-lg font-mono font-bold text-xs transition bg-sky-500 text-slate-950 border border-sky-400 shadow-md shadow-sky-500/20 flex items-center gap-1";
+        btn.innerHTML = "<span>🔀 シャッフル: ON</span>";
+      } else {
+        btn.className = "touch-btn px-3 py-1 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1";
+        btn.innerHTML = "<span>🔀 シャッフル: OFF</span>";
+      }
+      updateAudioDisplay();
+    }
+
+    // 前へ / 次へ スキップ機能（シャッフル順序対応）
     function skipAudio(direction) {
       clearAllSpeech();
-      audioQIdx = (audioQIdx + direction + questions.length) % questions.length;
+      if (isShuffle) {
+        if (shufflePlaylist.length !== questions.length) generateShuffleList();
+        shufflePointer = (shufflePointer + direction + shufflePlaylist.length) % shufflePlaylist.length;
+        audioQIdx = shufflePlaylist[shufflePointer];
+      } else {
+        audioQIdx = (audioQIdx + direction + questions.length) % questions.length;
+      }
       if (isPlayingAudio) {
         playSpeechSequence();
       } else {
@@ -829,7 +1099,12 @@
       const q = questions[audioQIdx];
       document.getElementById('audioCurrentTerm').innerText = q.answer;
       document.getElementById('audioCurrentAnalogy').innerText = q.hint;
-      document.getElementById('audioTrackCounter').innerText = `${audioQIdx + 1} / ${questions.length}`;
+      const counterEl = document.getElementById('audioTrackCounter');
+      if (isShuffle) {
+        counterEl.innerHTML = `<span class="text-sky-400 font-bold">🔀 ${shufflePointer + 1} / ${questions.length}</span>`;
+      } else {
+        counterEl.innerText = `${audioQIdx + 1} / ${questions.length}`;
+      }
     }
 
     // Android ロック画面・通知コントローラー (MediaSession API)
@@ -839,7 +1114,7 @@
         navigator.mediaSession.metadata = new MediaMetadata({
           title: q.answer,
           artist: "FE-BrainLab 耳学アクティブリコール",
-          album: `問題 ${audioQIdx + 1} / ${questions.length}`
+          album: isShuffle ? `[🔀] ${shufflePointer + 1} / ${questions.length}` : `${audioQIdx + 1} / ${questions.length}`
         });
 
         navigator.mediaSession.setActionHandler('play', () => toggleAudioPlayback());
@@ -893,10 +1168,19 @@
               speakText(script.a, 1.08, 1.0, () => {
                 if (!isPlayingAudio) return;
 
-                // 次の問題へ（2秒の間隔）
+                // 次の問題へ（2秒の間隔・シャッフル対応）
                 speechTimer = setTimeout(() => {
                   if (!isPlayingAudio) return;
-                  audioQIdx = (audioQIdx + 1) % questions.length;
+                  if (isShuffle) {
+                    shufflePointer++;
+                    if (shufflePointer >= shufflePlaylist.length) {
+                      generateShuffleList();
+                      shufflePointer = 0;
+                    }
+                    audioQIdx = shufflePlaylist[shufflePointer];
+                  } else {
+                    audioQIdx = (audioQIdx + 1) % questions.length;
+                  }
                   playSpeechSequence();
                 }, 2000);
               });
