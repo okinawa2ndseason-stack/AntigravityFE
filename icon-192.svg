@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bgGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0f1d"/>
+      <stop offset="100%" stop-color="#131d33"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="192" height="192" rx="48" fill="url(#bgGrad192)"/>
+  <rect width="186" height="186" x="3" y="3" rx="45" fill="none" stroke="#1e293b" stroke-width="3"/>
+  
+  <circle cx="96" cy="96" r="54" fill="none" stroke="url(#cyanGrad192)" stroke-width="6" stroke-dasharray="8 5"/>
+  <circle cx="96" cy="96" r="34" fill="#0f172a" stroke="#38bdf8" stroke-width="4"/>
+  <path d="M104 60 L75 102 L95 102 L88 132 L119 90 L99 90 Z" fill="url(#cyanGrad192)"/>
+</svg>

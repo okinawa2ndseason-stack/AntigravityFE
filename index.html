@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>FE-BrainLab | 基本情報アクティブリコール道場</title>
+  <!-- PWA Manifest & Meta Tags -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0a0f1d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="./icon-192.svg">
+  <link rel="icon" type="image/svg+xml" href="./icon-192.svg">
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: JetBrains Mono + Noto Sans JP -->
@@ -71,12 +79,34 @@
 </head>
 <body class="font-sans min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white relative">
 
-  <!-- 有機ELバッテリー超節約 ブラックアウト全画面オーバーレイ -->
-  <div id="blackoutOverlay" onclick="toggleBlackout(false)" class="hidden fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center select-none cursor-pointer">
-    <div class="space-y-4">
-      <div class="w-3 h-3 rounded-full bg-emerald-500/80 mx-auto animate-ping"></div>
-      <p class="text-xs text-neutral-600 font-mono">🔋 有機EL省電力モードで音声再生中</p>
-      <p class="text-[11px] text-neutral-700">画面をタップすると通常画面に戻ります</p>
+  <!-- 有機ELバッテリー超節約 ＆ ポケット誤タップ完全防止ロック（長押し2秒解除） -->
+  <div id="blackoutOverlay" class="hidden fixed inset-0 z-[100] bg-black flex flex-col items-center justify-between p-8 text-center select-none touch-none">
+    <div class="pt-6">
+      <div class="w-3 h-3 rounded-full bg-emerald-500/80 mx-auto animate-ping mb-2"></div>
+      <p class="text-xs text-neutral-500 font-mono">🔒 ポケットロック ＆ 有機EL省電力中</p>
+      <p class="text-[11px] text-neutral-600 mt-0.5">音声はバックグラウンドで連続再生中</p>
+    </div>
+
+    <!-- 長押し2秒解除ゾーン -->
+    <div id="unlockZone" class="my-auto flex flex-col items-center justify-center p-6 cursor-pointer touch-none">
+      <div class="relative w-32 h-32 flex items-center justify-center">
+        <!-- SVGサークルプログレスバー -->
+        <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="42" fill="none" stroke="#262626" stroke-width="5"/>
+          <circle id="unlockCircle" cx="50" cy="50" r="42" fill="none" stroke="#38bdf8" stroke-width="5" stroke-dasharray="264" stroke-dashoffset="264" class="transition-none"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center text-neutral-400">
+          <span id="lockIcon" class="text-3xl transition-transform">🔒</span>
+          <span class="text-[10px] mt-1 font-mono text-neutral-500">2秒長押し</span>
+        </div>
+      </div>
+      <p id="unlockHint" class="text-[11px] text-neutral-500 mt-3 font-mono">
+        画面を押したままホールドで解除
+      </p>
+    </div>
+
+    <div class="pb-6">
+      <p class="text-[10px] text-neutral-700">ポケット内での摩擦による誤動作を100%防止しています</p>
     </div>
   </div>
 
@@ -276,8 +306,8 @@
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> 耳学アクティブリコール
             </span>
             <div class="flex items-center gap-2">
-              <button onclick="toggleBlackout(true)" class="touch-btn text-[11px] px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 flex items-center gap-1">
-                <span>🔋</span> 省電力ブラック画面
+              <button onclick="toggleBlackout(true)" class="touch-btn text-[11px] px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 flex items-center gap-1 shadow-sm">
+                <span>🔒</span> ポケットロック
               </button>
               <div id="soundWaves" class="flex items-end gap-1 h-5 hidden">
                 <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
@@ -350,15 +380,15 @@
             </div>
           </div>
 
-          <!-- 設定エリア（シャッフル・速度・想起の間） -->
+          <!-- 設定エリア（シャッフル・声質・速度・想起の間） -->
           <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-2.5 mb-2 text-xs">
-            <!-- シャッフルトグル ＆ カウンターステータス -->
-            <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
-              <span class="text-slate-300 font-medium flex items-center gap-1.5">
-                <span>🔀</span> 出題順序
-              </span>
-              <button id="shuffleToggleBtn" onclick="toggleShuffle()" class="touch-btn px-3 py-1 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1">
+            <!-- 1行目: シャッフルトグル ＆ 音声トーン（女性/男性） -->
+            <div class="grid grid-cols-2 gap-2 pb-2 border-b border-slate-800/80">
+              <button id="shuffleToggleBtn" onclick="toggleShuffle()" class="touch-btn py-1.5 px-2.5 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5">
                 <span>🔀 シャッフル: OFF</span>
+              </button>
+              <button id="voiceGenderBtn" onclick="toggleVoiceGender()" class="touch-btn py-1.5 px-2.5 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5">
+                <span id="voiceGenderLabel">👤 声: 👩 女性</span>
               </button>
             </div>
 
@@ -944,6 +974,7 @@
     let shufflePlaylist = [];
     let shufflePointer = 0;
     let showAnalogy = localStorage.getItem('fe_show_analogy') === 'true';
+    let audioGender = localStorage.getItem('fe_voice_gender') || 'female';
     const synth = window.speechSynthesis;
     const silentAudio = document.getElementById('silentAudioPlayer');
 
@@ -989,7 +1020,28 @@
       }
     }
 
-    // 自動で最適な日本語音声を探索（UIドロップダウンは撤去）
+    // 音声トーン（女性 / 男性）の切り替え
+    function toggleVoiceGender() {
+      audioGender = (audioGender === 'female') ? 'male' : 'female';
+      localStorage.setItem('fe_voice_gender', audioGender);
+      updateVoiceGenderUI();
+      initBestVoice();
+    }
+
+    function updateVoiceGenderUI() {
+      const label = document.getElementById('voiceGenderLabel');
+      const btn = document.getElementById('voiceGenderBtn');
+      if (!label || !btn) return;
+      if (audioGender === 'male') {
+        label.innerText = "👤 声: 👨 男性";
+        btn.className = "touch-btn py-1.5 px-2.5 rounded-lg font-mono font-bold text-xs transition bg-sky-950 text-sky-400 border border-sky-800 flex items-center justify-center gap-1.5 shadow-sm";
+      } else {
+        label.innerText = "👤 声: 👩 女性";
+        btn.className = "touch-btn py-1.5 px-2.5 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5";
+      }
+    }
+
+    // 最適な日本語音声を探索（性別トーン対応）
     function initBestVoice() {
       if (!synth) return;
       const voices = synth.getVoices();
@@ -1002,17 +1054,27 @@
       jaVoices.forEach(v => {
         let score = 0;
         const nameLower = v.name.toLowerCase();
-        if (nameLower.includes('google')) score += 10; // Android Chromeに最適
-        if (nameLower.includes('natural') || nameLower.includes('online')) score += 9;
-        if (nameLower.includes('siri')) score += 8;
-        if (nameLower.includes('nanami')) score += 7;
-        if (nameLower.includes('kyoko') || nameLower.includes('otoya')) score += 6;
+        
+        if (audioGender === 'male') {
+          // 男性の場合は男性識別子や低音ボイスを優先
+          if (nameLower.includes('male') || nameLower.includes('jab') || nameLower.includes('keita') || nameLower.includes('otoya')) score += 20;
+          if (nameLower.includes('natural') || nameLower.includes('online')) score += 5;
+        } else {
+          // 女性の場合は女性ボイスを優先
+          if (nameLower.includes('female') || nameLower.includes('nanami') || nameLower.includes('kyoko')) score += 20;
+          if (nameLower.includes('google')) score += 10;
+          if (nameLower.includes('natural') || nameLower.includes('online')) score += 5;
+        }
 
         if (score > bestScore) {
           bestScore = score;
           selectedVoice = v;
         }
       });
+      // 一致するものがない場合は先頭ボイスをフォールバック採用
+      if (!selectedVoice && jaVoices.length > 0) {
+        selectedVoice = jaVoices[0];
+      }
     }
 
     if (synth) {
@@ -1039,14 +1101,93 @@
       }
     }
 
-    // 有機ELバッテリー超節約 ブラックアウト切り替え
+    // 有機ELバッテリー超節約 ＆ ポケットロック切り替え
+    let holdTimer = null;
+    let holdStart = 0;
+    let holdAnimId = null;
+    const HOLD_DURATION_MS = 2000;
+
     function toggleBlackout(enable) {
       const overlay = document.getElementById('blackoutOverlay');
+      if (!overlay) return;
       if (enable) {
         overlay.classList.remove('hidden');
+        resetHoldProgress();
       } else {
         overlay.classList.add('hidden');
+        cancelHold();
       }
+    }
+
+    function resetHoldProgress() {
+      const circle = document.getElementById('unlockCircle');
+      const hint = document.getElementById('unlockHint');
+      const icon = document.getElementById('lockIcon');
+      if (circle) circle.style.strokeDashoffset = '264';
+      if (hint) hint.innerText = "画面を押したままホールドで解除";
+      if (icon) icon.className = "text-3xl transition-transform";
+    }
+
+    function cancelHold() {
+      if (holdAnimId) {
+        cancelAnimationFrame(holdAnimId);
+        holdAnimId = null;
+      }
+      resetHoldProgress();
+    }
+
+    function initPocketLock() {
+      const zone = document.getElementById('unlockZone');
+      if (!zone) return;
+
+      const circle = document.getElementById('unlockCircle');
+      const hint = document.getElementById('unlockHint');
+      const icon = document.getElementById('lockIcon');
+
+      function startHold(e) {
+        e.preventDefault();
+        holdStart = performance.now();
+
+        if (icon) icon.classList.add('scale-110');
+
+        function step(now) {
+          const elapsed = now - holdStart;
+          const progress = Math.min(elapsed / HOLD_DURATION_MS, 1.0);
+          
+          if (circle) {
+            // strokeDashoffset: 264 -> 0
+            circle.style.strokeDashoffset = String(264 * (1 - progress));
+          }
+
+          const remainSec = Math.max(0, ((HOLD_DURATION_MS - elapsed) / 1000)).toFixed(1);
+          if (hint) {
+            hint.innerHTML = `<span class="text-sky-400 font-bold">解除まであと ${remainSec} 秒...</span>`;
+          }
+
+          if (progress >= 1.0) {
+            // 解除成功！
+            if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+            toggleBlackout(false);
+          } else {
+            holdAnimId = requestAnimationFrame(step);
+          }
+        }
+
+        holdAnimId = requestAnimationFrame(step);
+      }
+
+      function endHold(e) {
+        e.preventDefault();
+        cancelHold();
+      }
+
+      zone.addEventListener('touchstart', startHold, { passive: false });
+      zone.addEventListener('touchend', endHold, { passive: false });
+      zone.addEventListener('touchcancel', endHold, { passive: false });
+
+      zone.addEventListener('mousedown', startHold);
+      zone.addEventListener('mouseup', endHold);
+      zone.addEventListener('mouseleave', endHold);
     }
 
     // 再生速度の変更（バグ修正: 既存シーケンスを壊さず変数のみ更新）
@@ -1082,11 +1223,6 @@
         const j = Math.floor(Math.random() * (i + 1));
         [shufflePlaylist[i], shufflePlaylist[j]] = [shufflePlaylist[j], shufflePlaylist[i]];
       }
-      // 現在の問題がある場合はそれを先頭に持ってくる（スムーズな開始）
-      const curPos = shufflePlaylist.indexOf(audioQIdx);
-      if (curPos > 0) {
-        [shufflePlaylist[0], shufflePlaylist[curPos]] = [shufflePlaylist[curPos], shufflePlaylist[0]];
-      }
       shufflePointer = 0;
     }
 
@@ -1096,20 +1232,32 @@
       const btn = document.getElementById('shuffleToggleBtn');
       if (isShuffle) {
         generateShuffleList();
-        btn.className = "touch-btn px-3 py-1 rounded-lg font-mono font-bold text-xs transition bg-sky-500 text-slate-950 border border-sky-400 shadow-md shadow-sky-500/20 flex items-center gap-1";
+        // シャッフルONにした瞬間に1問目固定を脱却し、ランダムな問題に即座に切り替え
+        audioQIdx = shufflePlaylist[0];
+        shufflePointer = 0;
+        btn.className = "touch-btn py-1.5 px-2.5 rounded-lg font-mono font-bold text-xs transition bg-sky-500 text-slate-950 border border-sky-400 shadow-md shadow-sky-500/20 flex items-center justify-center gap-1.5";
         btn.innerHTML = "<span>🔀 シャッフル: ON</span>";
       } else {
-        btn.className = "touch-btn px-3 py-1 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1";
+        btn.className = "touch-btn py-1.5 px-2.5 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5";
         btn.innerHTML = "<span>🔀 シャッフル: OFF</span>";
       }
-      updateAudioDisplay();
+
+      if (isPlayingAudio) {
+        clearAllSpeech();
+        playSpeechSequence();
+      } else {
+        lockAudioAnswer();
+        updateAudioDisplay();
+      }
     }
 
-    // 前へ / 次へ スキップ機能（シャッフル順序対応）
+    // 前へ / 次へ スキップ機能（シャッフル順序完全同期）
     function skipAudio(direction) {
       clearAllSpeech();
       if (isShuffle) {
-        if (shufflePlaylist.length !== questions.length) generateShuffleList();
+        if (!shufflePlaylist || shufflePlaylist.length !== questions.length) {
+          generateShuffleList();
+        }
         shufflePointer = (shufflePointer + direction + shufflePlaylist.length) % shufflePlaylist.length;
         audioQIdx = shufflePlaylist[shufflePointer];
       } else {
@@ -1294,7 +1442,15 @@
       if (selectedVoice) utter.voice = selectedVoice;
       utter.lang = 'ja-JP';
       utter.rate = audioRate;
-      utter.pitch = pitch;
+
+      // 音声トーン補正（男性トーンの場合は低音、女性トーンの場合は明るい標準音）
+      let adjustedPitch = pitch;
+      if (audioGender === 'male') {
+        adjustedPitch = pitch * 0.82; // 落ち着いた男性低音トーン
+      } else {
+        adjustedPitch = pitch * 1.05; // 聞き取りやすい女性標準音
+      }
+      utter.pitch = adjustedPitch;
       utter.volume = volume;
 
       utter.onend = () => {
@@ -1353,9 +1509,20 @@
     window.addEventListener('DOMContentLoaded', () => {
       renderQuestion();
       updateAnalogyUI();
+      updateVoiceGenderUI();
+      initPocketLock();
       lockAudioAnswer();
       updateAudioDisplay();
       setTimeout(initBestVoice, 300);
+
+      // PWA Service Worker 登録（自動キャッシュ＆高速オフライン対応）
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then(() => {
+          console.log("PWA Service Worker registered.");
+        }).catch((err) => {
+          console.warn("Service Worker registration failed:", err);
+        });
+      }
     });
   </script>
 </body>
