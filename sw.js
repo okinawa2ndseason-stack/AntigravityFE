@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fe-brainlab-v2';
+const CACHE_NAME = 'fe-brainlab-v3';
 const ASSETS = [
   './',
   './index.html',
