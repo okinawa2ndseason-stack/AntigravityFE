@@ -382,16 +382,13 @@
 
           <!-- 設定エリア（シャッフル・声質・速度・想起の間） -->
           <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-2.5 mb-2 text-xs">
-            <!-- 1行目: シャッフルトグル ＆ 音声トーン（女性/男性ダンディー） ＆ 試聴ボタン -->
-            <div class="grid grid-cols-12 gap-2 pb-2 border-b border-slate-800/80">
-              <button id="shuffleToggleBtn" onclick="toggleShuffle()" class="col-span-5 touch-btn py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1">
+            <!-- 1行目: シャッフルトグル ＆ 音声トーン（女性/男性） -->
+            <div class="grid grid-cols-2 gap-2 pb-2 border-b border-slate-800/80">
+              <button id="shuffleToggleBtn" onclick="toggleShuffle()" class="touch-btn w-full py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5">
                 <span>🔀 シャッフル: OFF</span>
               </button>
-              <button id="voiceGenderBtn" onclick="toggleVoiceGender()" class="col-span-4 touch-btn py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1">
-                <span id="voiceGenderLabel">👤 👩 女性</span>
-              </button>
-              <button onclick="previewCurrentVoice()" class="col-span-3 touch-btn py-1.5 px-1.5 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 flex items-center justify-center gap-1 shadow-sm" title="現在の声を試聴">
-                <span>🎙️ 試聴</span>
+              <button id="voiceGenderBtn" onclick="toggleVoiceGender()" class="touch-btn w-full py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5">
+                <span id="voiceGenderLabel">👤 声: 👩 女性</span>
               </button>
             </div>
 
@@ -1040,12 +1037,14 @@
       }
     }
 
-    // 音声トーン（女性 / 男性ダンディー）の切り替え
+    // 音声トーン（女性 / 男性）の切り替え
     function toggleVoiceGender() {
       audioGender = (audioGender === 'female') ? 'male' : 'female';
       localStorage.setItem('fe_voice_gender', audioGender);
       updateVoiceGenderUI();
       initBestVoice();
+      // 声を切り替えた瞬間に自動で短い試聴フレーズを流す
+      previewCurrentVoice();
     }
 
     function updateVoiceGenderUI() {
@@ -1053,11 +1052,11 @@
       const btn = document.getElementById('voiceGenderBtn');
       if (!label || !btn) return;
       if (audioGender === 'male') {
-        label.innerText = "👤 👨 ダンディー";
-        btn.className = "col-span-4 touch-btn py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-sky-950 text-sky-400 border border-sky-800 flex items-center justify-center gap-1 shadow-sm";
+        label.innerText = "👤 声: 👨 男性";
+        btn.className = "touch-btn w-full py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-sky-950 text-sky-400 border border-sky-800 flex items-center justify-center gap-1.5 shadow-sm";
       } else {
-        label.innerText = "👤 👩 女性";
-        btn.className = "col-span-4 touch-btn py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1";
+        label.innerText = "👤 声: 👩 女性";
+        btn.className = "touch-btn w-full py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5";
       }
     }
 
@@ -1098,22 +1097,19 @@
       }
     }
 
-    // 現在選択されている声の試聴（ワンタップで声の響きを確認）
+    // 声切り替え時のスマート試聴（ワンタップで声の響きを確認）
     function previewCurrentVoice() {
-      if (!synth) {
-        alert("音声合成に対応していません。");
-        return;
-      }
+      if (!synth) return;
       clearAllSpeech();
       const testPhrase = (audioGender === 'male')
-        ? "基本情報技術者試験、合格を掴み取りましょう。"
-        : "基本情報技術者試験、アクティブリコールで記憶を定着させましょう。";
+        ? "男性音声に切り替えました。"
+        : "女性音声に切り替えました。";
 
       const utter = new SpeechSynthesisUtterance(testPhrase);
       if (selectedVoice) utter.voice = selectedVoice;
       utter.lang = 'ja-JP';
       utter.rate = audioRate;
-      utter.pitch = (audioGender === 'male') ? 0.70 : 1.05;
+      utter.pitch = (audioGender === 'male') ? 0.60 : 1.05;
       utter.volume = 1.0;
       synth.speak(utter);
     }
@@ -1276,10 +1272,10 @@
         // シャッフルONにした瞬間に1問目固定を脱却し、ランダムな問題に即座に切り替え
         audioQIdx = shufflePlaylist[0];
         shufflePointer = 0;
-        btn.className = "touch-btn py-1.5 px-2.5 rounded-lg font-mono font-bold text-xs transition bg-sky-500 text-slate-950 border border-sky-400 shadow-md shadow-sky-500/20 flex items-center justify-center gap-1.5";
+        btn.className = "touch-btn w-full py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-sky-500 text-slate-950 border border-sky-400 shadow-md shadow-sky-500/20 flex items-center justify-center gap-1.5";
         btn.innerHTML = "<span>🔀 シャッフル: ON</span>";
       } else {
-        btn.className = "touch-btn py-1.5 px-2.5 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5";
+        btn.className = "touch-btn w-full py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5";
         btn.innerHTML = "<span>🔀 シャッフル: OFF</span>";
       }
 
@@ -1497,8 +1493,8 @@
       // 音声トーン補正（認知科学に基づく記憶定着ピッチ）
       let adjustedPitch = pitch;
       if (audioGender === 'male') {
-        // 深みのあるダンディー低音（基本 0.70、正解時は 0.66）
-        adjustedPitch = pitch * 0.70;
+        // 深みのある男性低音（基本 0.60、正解時は 0.57）
+        adjustedPitch = pitch * 0.60;
       } else {
         adjustedPitch = pitch * 1.05; // 聞き取りやすい女性標準音
       }
