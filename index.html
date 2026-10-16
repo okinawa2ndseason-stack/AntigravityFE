@@ -146,26 +146,40 @@
     <!-- 1. 想起道場モード (Active Recall Mode) -->
     <div id="recallView" class="flex-1 flex flex-col">
       <!-- ステータスバー -->
-      <div class="flex items-center justify-between text-xs text-slate-400 mb-3 px-1">
+      <div class="flex items-center justify-between text-xs text-slate-400 mb-2.5 px-1">
         <div class="flex items-center gap-2">
           <span id="categoryBadge" class="px-2 py-0.5 rounded bg-slate-800 text-sky-300 font-mono text-[11px] border border-slate-700">最新テクノロジ</span>
           <span id="streakCount" class="text-amber-400 font-bold">🔥 連続正解 0</span>
         </div>
-        <div class="font-mono text-[11px]">
-          問題: <span id="currentIndex" class="text-white font-bold">1</span> / <span id="totalQuestions">10</span>
+        <div class="flex items-center gap-2">
+          <!-- ⚡ ゼロ秒想起トグル -->
+          <button id="fastRecallToggleBtn" onclick="toggleFastRecall()" class="touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm" title="3秒で自動オープンするタイムアタック想起">
+            <span id="fastRecallIcon">⚡</span> <span id="fastRecallLabel">高速: OFF</span>
+          </button>
+          <div class="font-mono text-[11px]">
+            <span id="currentIndex" class="text-white font-bold">1</span> / <span id="totalQuestions">10</span>
+          </div>
         </div>
       </div>
 
       <!-- プログレスバー -->
-      <div class="w-full bg-slate-800 h-1.5 rounded-full mb-4 overflow-hidden">
+      <div class="w-full bg-slate-800 h-1.5 rounded-full mb-2 overflow-hidden">
         <div id="progressBar" class="bg-gradient-to-r from-sky-500 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+      </div>
+
+      <!-- ⚡ 高速想起用カウントダウンバー (高速モード時のみ表示) -->
+      <div id="fastTimerContainer" class="hidden w-full bg-slate-900/90 rounded-full h-1.5 mb-3 overflow-hidden border border-amber-900/50">
+        <div id="fastTimerBar" class="bg-gradient-to-r from-amber-400 via-rose-400 to-rose-600 h-full w-full"></div>
       </div>
 
       <!-- クエスチョンカード (Desirable Difficulty設計) -->
       <div class="bg-[#131d33] border border-slate-800 rounded-2xl p-5 shadow-xl shadow-black/40 flex-1 flex flex-col justify-between mb-4">
         <div>
           <div class="flex items-center justify-between text-xs text-sky-400/80 mb-2 font-mono">
-            <span>[重要問題]</span>
+            <div class="flex items-center gap-2">
+              <span>[重要問題]</span>
+              <span id="fastTimerBadge" class="hidden text-[10px] px-2 py-0.5 bg-amber-950 text-amber-300 border border-amber-800 rounded font-bold animate-pulse">⚡ 3秒想起中</span>
+            </div>
             <span id="difficultyBadge" class="text-[10px] px-2 py-0.5 bg-slate-800 rounded text-slate-300">頻出・必須</span>
           </div>
           <h2 id="questionTitle" class="text-base sm:text-lg font-bold text-white leading-relaxed mb-4">
@@ -395,21 +409,31 @@
               </button>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-2.5 pt-0.5">
+              <!-- 再生速度セレクター（5段階: 0.9x / 1.0x / 1.2x / 1.5x / 2.0x） -->
               <div>
-                <span class="text-slate-400 block mb-1 font-medium">再生速度</span>
-                <div class="flex gap-1 font-mono">
-                  <button data-rate="0.9" onclick="setAudioRate(0.9)" class="rate-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">0.9x</button>
-                  <button data-rate="1.0" onclick="setAudioRate(1.0)" class="rate-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center transition">1.0x</button>
-                  <button data-rate="1.2" onclick="setAudioRate(1.2)" class="rate-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">1.2x</button>
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-slate-400 font-medium text-[11px]">再生速度（倍速・高速想起）</span>
+                  <span id="currentAudioRateBadge" class="text-sky-400 font-mono text-[10px] font-bold">1.0x (標準)</span>
+                </div>
+                <div class="grid grid-cols-5 gap-1 font-mono text-[11px]">
+                  <button data-rate="0.9" onclick="setAudioRate(0.9)" class="rate-btn py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">0.9x</button>
+                  <button data-rate="1.0" onclick="setAudioRate(1.0)" class="rate-btn py-1.5 bg-sky-500 text-slate-950 font-bold rounded text-center transition">1.0x</button>
+                  <button data-rate="1.2" onclick="setAudioRate(1.2)" class="rate-btn py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">1.2x</button>
+                  <button data-rate="1.5" onclick="setAudioRate(1.5)" class="rate-btn py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">1.5x</button>
+                  <button data-rate="2.0" onclick="setAudioRate(2.0)" class="rate-btn py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">2.0x</button>
                 </div>
               </div>
-              <div>
-                <span class="text-slate-400 block mb-1 font-medium">想起の間（シンキング）</span>
-                <div class="flex gap-1 font-mono">
-                  <button data-think="2" onclick="setThinkTime(2)" class="think-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">2秒</button>
-                  <button data-think="3" onclick="setThinkTime(3)" class="think-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center transition">3秒</button>
-                  <button data-think="4" onclick="setThinkTime(4)" class="think-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">4秒</button>
+              <!-- 想起の間（シンキングタイム） -->
+              <div class="pt-2 border-t border-slate-800/80">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-slate-400 font-medium text-[11px]">想起の間（シンキング）</span>
+                  <span id="currentThinkBadge" class="text-sky-400 font-mono text-[10px] font-bold">3秒</span>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 font-mono text-xs">
+                  <button data-think="2" onclick="setThinkTime(2)" class="think-btn py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">2秒</button>
+                  <button data-think="3" onclick="setThinkTime(3)" class="think-btn py-1.5 bg-sky-500 text-slate-950 font-bold rounded text-center transition">3秒</button>
+                  <button data-think="4" onclick="setThinkTime(4)" class="think-btn py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition">4秒</button>
                 </div>
               </div>
             </div>
@@ -838,6 +862,71 @@
     let curQIndex = 0;
     let streak = 0;
     let isHintOpen = false;
+    let isFastRecall = false; // ⚡ ゼロ秒想起（3秒タイムアタック）
+    let fastRecallTimer = null;
+
+    function clearFastRecallTimer() {
+      if (fastRecallTimer) {
+        clearTimeout(fastRecallTimer);
+        fastRecallTimer = null;
+      }
+      const bar = document.getElementById('fastTimerBar');
+      if (bar) {
+        bar.style.transition = 'none';
+        bar.style.width = '100%';
+      }
+    }
+
+    function startFastRecallTimer() {
+      clearFastRecallTimer();
+      if (!isFastRecall) return;
+
+      const answerBox = document.getElementById('answerBox');
+      if (answerBox && !answerBox.classList.contains('hidden')) return;
+
+      const bar = document.getElementById('fastTimerBar');
+      if (bar) {
+        bar.style.transition = 'none';
+        bar.style.width = '100%';
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (isFastRecall && bar) {
+              bar.style.transition = 'width 3s linear';
+              bar.style.width = '0%';
+            }
+          });
+        });
+      }
+
+      fastRecallTimer = setTimeout(() => {
+        if (isFastRecall) {
+          revealAnswer();
+          clearFastRecallTimer();
+        }
+      }, 3000);
+    }
+
+    function toggleFastRecall() {
+      isFastRecall = !isFastRecall;
+      const btn = document.getElementById('fastRecallToggleBtn');
+      const label = document.getElementById('fastRecallLabel');
+      const container = document.getElementById('fastTimerContainer');
+      const badge = document.getElementById('fastTimerBadge');
+
+      if (isFastRecall) {
+        btn.className = "touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-amber-950 text-amber-400 border border-amber-800 flex items-center gap-1 shadow-sm";
+        label.innerText = "高速: ON";
+        if (container) container.classList.remove('hidden');
+        if (badge) badge.classList.remove('hidden');
+        startFastRecallTimer();
+      } else {
+        btn.className = "touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm";
+        label.innerText = "高速: OFF";
+        if (container) container.classList.add('hidden');
+        if (badge) badge.classList.add('hidden');
+        clearFastRecallTimer();
+      }
+    }
 
     function renderQuestion() {
       const q = questions[curQIndex];
@@ -858,21 +947,30 @@
       document.getElementById('answerBox').classList.add('hidden');
       document.getElementById('preAnswerActions').classList.remove('hidden');
       document.getElementById('postAnswerActions').classList.add('hidden');
+
+      if (isFastRecall) {
+        startFastRecallTimer();
+      } else {
+        clearFastRecallTimer();
+      }
     }
 
     function toggleHint() {
       const hintBox = document.getElementById('hintBox');
       isHintOpen = !isHintOpen;
       if (isHintOpen) {
+        clearFastRecallTimer();
         hintBox.classList.remove('hidden');
         document.getElementById('hintBtnText').innerText = "ヒントを隠す";
       } else {
         hintBox.classList.add('hidden');
         document.getElementById('hintBtnText').innerText = "たとえ話ヒントを見る";
+        if (isFastRecall) startFastRecallTimer();
       }
     }
 
     function revealAnswer() {
+      clearFastRecallTimer();
       document.getElementById('answerBox').classList.remove('hidden');
       document.getElementById('preAnswerActions').classList.add('hidden');
       document.getElementById('postAnswerActions').classList.remove('hidden');
@@ -1283,15 +1381,29 @@
       zone.addEventListener('mouseleave', endHold);
     }
 
-    // 再生速度の変更（バグ修正: 既存シーケンスを壊さず変数のみ更新）
+    // 再生速度の変更（0.9x / 1.0x / 1.2x / 1.5x / 2.0x 高速穴埋め想起対応）
     function setAudioRate(rate) {
       audioRate = rate;
+      const badge = document.getElementById('currentAudioRateBadge');
+      if (badge) {
+        if (rate >= 1.5) {
+          badge.innerText = `${rate.toFixed(1)}x (高速穴埋め)`;
+          badge.className = "text-amber-400 font-mono text-[10px] font-bold";
+        } else if (rate === 1.0) {
+          badge.innerText = `1.0x (標準)`;
+          badge.className = "text-sky-400 font-mono text-[10px] font-bold";
+        } else {
+          badge.innerText = `${rate.toFixed(1)}x`;
+          badge.className = "text-slate-300 font-mono text-[10px] font-bold";
+        }
+      }
+
       document.querySelectorAll('.rate-btn').forEach(btn => {
         const btnRate = parseFloat(btn.dataset.rate);
         if (Math.abs(btnRate - rate) < 0.05) {
-          btn.className = "rate-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center transition";
+          btn.className = "rate-btn py-1.5 bg-sky-500 text-slate-950 font-bold rounded text-center transition";
         } else {
-          btn.className = "rate-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition";
+          btn.className = "rate-btn py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition";
         }
       });
     }
@@ -1299,12 +1411,15 @@
     // 想起の間（シンキングタイム）の変更
     function setThinkTime(sec) {
       thinkSeconds = sec;
+      const badge = document.getElementById('currentThinkBadge');
+      if (badge) badge.innerText = `${sec}秒`;
+
       document.querySelectorAll('.think-btn').forEach(btn => {
         const btnThink = parseInt(btn.dataset.think);
         if (btnThink === sec) {
-          btn.className = "think-btn flex-1 py-1 bg-sky-500 text-slate-950 font-bold rounded text-center transition";
+          btn.className = "think-btn py-1.5 bg-sky-500 text-slate-950 font-bold rounded text-center transition";
         } else {
-          btn.className = "think-btn flex-1 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition";
+          btn.className = "think-btn py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-center transition";
         }
       });
     }
@@ -1825,7 +1940,7 @@
     function jumpToRecall(questionId) {
       const idx = questions.findIndex(q => q.id === questionId);
       if (idx === -1) return;
-      currentIdx = idx;
+      curQIndex = idx;
       switchMode('recall');
       renderQuestion();
     }
@@ -1834,6 +1949,9 @@
     // 6. モード切り替えタブ
     // ==========================================
     function switchMode(mode) {
+      if (mode !== 'recall') {
+        clearFastRecallTimer();
+      }
       if (isPlayingAudio && mode !== 'audio') {
         stopAudioPlayback();
       }
