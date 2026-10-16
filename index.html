@@ -125,7 +125,7 @@
       <!-- モード切り替えタブ -->
       <nav class="flex space-x-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-xs">
         <button id="tabRecall" onclick="switchMode('recall')" class="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow text-[11px] sm:text-xs">
-          🧠 想起
+          💡 暗記
         </button>
         <button id="tabTrace" onclick="switchMode('trace')" class="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white text-[11px] sm:text-xs">
           ⚡ トレース
@@ -143,8 +143,13 @@
   <!-- メインコンテンツ領域 -->
   <main class="max-w-xl mx-auto w-full flex-1 px-4 py-4 flex flex-col">
 
-    <!-- 1. 想起道場モード (Active Recall Mode) -->
+    <!-- 1. 暗記道場モード (Active Recall Mode) -->
     <div id="recallView" class="flex-1 flex flex-col">
+      <!-- ジャンルチップス (暗記モード用) -->
+      <div id="recallCategoryChips" class="flex gap-1.5 overflow-x-auto pb-1 text-[11px] font-mono no-scrollbar mb-2">
+        <!-- JSで動的生成：[すべて] [最新・セキュリティ] [システム開発技術] 等 -->
+      </div>
+
       <!-- ステータスバー -->
       <div class="flex items-center justify-between text-xs text-slate-400 mb-2.5 px-1">
         <div class="flex items-center gap-2">
@@ -323,7 +328,7 @@
       <div class="bg-[#131d33] border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl flex-1 flex flex-col justify-between">
         <div>
           <!-- ヘッダーと波形・省電力ボタン -->
-          <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-between mb-3">
             <span class="text-xs px-2.5 py-1 bg-sky-950 text-sky-400 border border-sky-800 rounded-full font-mono flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> 耳学モード
             </span>
@@ -339,6 +344,11 @@
                 <div class="w-1 bg-sky-400 rounded-full wave-bar"></div>
               </div>
             </div>
+          </div>
+
+          <!-- ジャンルチップス (耳学モード用) -->
+          <div id="audioCategoryChips" class="flex gap-1.5 overflow-x-auto pb-1 text-[11px] font-mono no-scrollbar mb-3">
+            <!-- JSで動的生成 -->
           </div>
 
           <!-- 再生中フェーズバッジ -->
@@ -508,13 +518,13 @@
             <!-- JSで動的生成：[すべて] [最新・セキュリティ] [システム開発技術] 等 -->
           </div>
 
-          <!-- 想起テストモード切り替え（答え伏せ字） -->
+          <!-- 想起テストモード切り替え（答え表示・非表示） -->
           <div class="flex items-center justify-between pt-1.5 border-t border-slate-800/80 text-xs">
             <span class="text-slate-400 text-[11px] flex items-center gap-1">
               <span>🧠</span> 想起テスト
             </span>
             <button id="toggleMaskAllBtn" onclick="toggleMaskAllMode()" class="touch-btn px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition bg-sky-950 text-sky-400 border border-sky-800 flex items-center gap-1 shadow-sm">
-              <span id="maskAllBtnText">🙈 答え伏せ字: ON</span>
+              <span id="maskAllBtnText">🙈 答え非表示</span>
             </button>
           </div>
         </div>
@@ -959,7 +969,7 @@
     }
 
     // ==========================================
-    // 3. 想起道場コントローラ (Active Recall Engine)
+    // 3. 暗記道場コントローラ (Active Recall Engine)
     // ==========================================
     let curQIndex = 0;
     let streak = 0;
@@ -969,16 +979,49 @@
     let isRecallShuffle = false; // 🔀 弱点優先スマートシャッフル
     let recallPlaylist = [];
     let recallPointer = 0;
+    let selectedRecallCategory = 'all';
+
+    function initRecallCategoryChips() {
+      const container = document.getElementById('recallCategoryChips');
+      if (!container) return;
+      const categories = ['all', ...Array.from(new Set(questions.map(q => q.category)))];
+      container.innerHTML = categories.map(cat => {
+        const label = (cat === 'all') ? '🌐 すべて' : cat;
+        const isSelected = (cat === selectedRecallCategory);
+        const cls = isSelected
+          ? 'px-2.5 py-1 rounded-lg bg-sky-500 text-slate-950 font-bold whitespace-nowrap transition cursor-pointer shadow-sm text-[11px]'
+          : 'px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 whitespace-nowrap transition cursor-pointer border border-slate-700 text-[11px]';
+        return `<button onclick="setRecallCategoryFilter('${cat}')" class="${cls}">${label}</button>`;
+      }).join('');
+    }
+
+    function setRecallCategoryFilter(cat) {
+      selectedRecallCategory = cat;
+      initRecallCategoryChips();
+      generateRecallPlaylist();
+      recallPointer = 0;
+      renderQuestion();
+    }
 
     function generateRecallPlaylist() {
       const stats = getCardStats();
+      const pool = questions
+        .map((q, idx) => ({ q, idx }))
+        .filter(item => selectedRecallCategory === 'all' || item.q.category === selectedRecallCategory);
+
+      if (pool.length === 0) {
+        recallPlaylist = [];
+        recallPointer = 0;
+        return;
+      }
+
       if (isRecallShuffle) {
-        const scored = questions
-          .map((q, idx) => ({ idx, priority: calculateQuestionPriority(q, stats) }))
+        const scored = pool
+          .map(item => ({ idx: item.idx, priority: calculateQuestionPriority(item.q, stats) }))
           .sort((a, b) => b.priority - a.priority);
         recallPlaylist = scored.map(item => item.idx);
       } else {
-        recallPlaylist = Array.from({ length: questions.length }, (_, i) => i);
+        recallPlaylist = pool.map(item => item.idx);
       }
       recallPointer = 0;
     }
@@ -995,7 +1038,7 @@
         btn.innerHTML = '<span>🔀</span> <span id="recallShuffleLabel">弱点優先</span>';
       } else {
         generateRecallPlaylist();
-        curQIndex = 0;
+        curQIndex = recallPlaylist[0] || 0;
         recallPointer = 0;
         btn.className = "touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm";
         btn.innerHTML = '<span id="recallShuffleIcon" class="text-rose-400 font-bold">➔</span> <span id="recallShuffleLabel">番号順</span>';
@@ -1071,6 +1114,9 @@
       if (recallPlaylist.length === 0) {
         generateRecallPlaylist();
       }
+      if (recallPlaylist.length === 0) return;
+      if (recallPointer >= recallPlaylist.length) recallPointer = 0;
+
       curQIndex = recallPlaylist[recallPointer];
       const q = questions[curQIndex];
       const stats = getCardStats();
@@ -1078,7 +1124,7 @@
 
       document.getElementById('categoryBadge').innerText = q.category;
       document.getElementById('currentIndex').innerText = recallPointer + 1;
-      document.getElementById('totalQuestions').innerText = questions.length;
+      document.getElementById('totalQuestions').innerText = recallPlaylist.length;
       document.getElementById('questionTitle').innerText = q.question;
       document.getElementById('hintContent').innerText = q.hint;
       document.getElementById('correctAnswer').innerText = q.answer;
@@ -1090,7 +1136,7 @@
         cardBadge.className = `text-[10px] px-2 py-0.5 rounded font-mono font-bold ${statusInfo.cls}`;
       }
 
-      const percent = ((recallPointer) / questions.length) * 100;
+      const percent = ((recallPointer) / recallPlaylist.length) * 100;
       document.getElementById('progressBar').style.width = percent + '%';
 
       document.getElementById('hintBox').classList.add('hidden');
@@ -1283,12 +1329,43 @@
     let selectedVoice = null;
     let wakeLockSentinel = null;
     let isShuffle = false;
-    let shufflePlaylist = [];
-    let shufflePointer = 0;
+    let audioPlaylist = [];
+    let audioPointer = 0;
+    let selectedAudioCategory = 'all';
     let showAnalogy = localStorage.getItem('fe_show_analogy') === 'true';
     let audioGender = localStorage.getItem('fe_voice_gender') || 'female';
     const synth = window.speechSynthesis;
     const silentAudio = document.getElementById('silentAudioPlayer');
+
+    function initAudioCategoryChips() {
+      const container = document.getElementById('audioCategoryChips');
+      if (!container) return;
+      const categories = ['all', ...Array.from(new Set(questions.map(q => q.category)))];
+      container.innerHTML = categories.map(cat => {
+        const label = (cat === 'all') ? '🌐 すべて' : cat;
+        const isSelected = (cat === selectedAudioCategory);
+        const cls = isSelected
+          ? 'px-2.5 py-1 rounded-lg bg-sky-500 text-slate-950 font-bold whitespace-nowrap transition cursor-pointer shadow-sm text-[11px]'
+          : 'px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 whitespace-nowrap transition cursor-pointer border border-slate-700 text-[11px]';
+        return `<button onclick="setAudioCategoryFilter('${cat}')" class="${cls}">${label}</button>`;
+      }).join('');
+    }
+
+    function setAudioCategoryFilter(cat) {
+      selectedAudioCategory = cat;
+      initAudioCategoryChips();
+      generateShuffleList();
+      audioPointer = 0;
+      if (audioPlaylist.length > 0) {
+        audioQIdx = audioPlaylist[0];
+      }
+      clearAllSpeech();
+      lockAudioAnswer();
+      updateAudioDisplay();
+      if (isPlayingAudio) {
+        playSpeechSequence();
+      }
+    }
 
     // 再生世代トークン ＆ タイマー完全追跡（スキップ時の競合・ゾンビタイマー根絶）
     let currentSequenceId = 0;
@@ -1583,25 +1660,45 @@
       });
     }
 
-    // 弱点優先スマート・シャッフル生成
+    // 弱点優先スマート・シャッフル＆ジャンル別プレイリスト生成
     function generateShuffleList() {
       const stats = getCardStats();
-      const scored = questions
-        .map((q, idx) => ({ idx, priority: calculateQuestionPriority(q, stats) }))
-        .sort((a, b) => b.priority - a.priority);
-      shufflePlaylist = scored.map(item => item.idx);
-      shufflePointer = 0;
+      const pool = questions
+        .map((q, idx) => ({ q, idx }))
+        .filter(item => selectedAudioCategory === 'all' || item.q.category === selectedAudioCategory);
+
+      if (pool.length === 0) {
+        audioPlaylist = [];
+        audioPointer = 0;
+        return;
+      }
+
+      if (isShuffle) {
+        const scored = pool
+          .map(item => ({ idx: item.idx, priority: calculateQuestionPriority(item.q, stats) }))
+          .sort((a, b) => b.priority - a.priority);
+        audioPlaylist = scored.map(item => item.idx);
+      } else {
+        audioPlaylist = pool.map(item => item.idx);
+      }
+      if (audioPointer >= audioPlaylist.length) {
+        audioPointer = 0;
+      }
+      if (audioPlaylist.length > 0) {
+        audioQIdx = audioPlaylist[audioPointer];
+      }
     }
 
     // シャッフル ON / OFF 切り替え
     function toggleShuffle() {
       isShuffle = !isShuffle;
       const btn = document.getElementById('shuffleToggleBtn');
+      generateShuffleList();
+      audioPointer = 0;
+      if (audioPlaylist.length > 0) {
+        audioQIdx = audioPlaylist[0];
+      }
       if (isShuffle) {
-        generateShuffleList();
-        // シャッフルONにした瞬間に弱点・未遭遇の最優先問題に即座に切り替え
-        audioQIdx = shufflePlaylist[0];
-        shufflePointer = 0;
         btn.className = "touch-btn w-full py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-sky-950 text-sky-400 border border-sky-800 shadow-sm flex items-center justify-center gap-1.5";
         btn.innerHTML = "<span>🔀 弱点優先: ON</span>";
       } else {
@@ -1618,18 +1715,16 @@
       }
     }
 
-    // 前へ / 次へ スキップ機能（シャッフル順序完全同期）
+    // 前へ / 次へ スキップ機能（ジャンル内順序完全同期）
     function skipAudio(direction) {
       clearAllSpeech();
-      if (isShuffle) {
-        if (!shufflePlaylist || shufflePlaylist.length !== questions.length) {
-          generateShuffleList();
-        }
-        shufflePointer = (shufflePointer + direction + shufflePlaylist.length) % shufflePlaylist.length;
-        audioQIdx = shufflePlaylist[shufflePointer];
-      } else {
-        audioQIdx = (audioQIdx + direction + questions.length) % questions.length;
+      if (!audioPlaylist || audioPlaylist.length === 0) {
+        generateShuffleList();
       }
+      if (audioPlaylist.length === 0) return;
+
+      audioPointer = (audioPointer + direction + audioPlaylist.length) % audioPlaylist.length;
+      audioQIdx = audioPlaylist[audioPointer];
 
       lockAudioAnswer();
       updateAudioDisplay();
@@ -1702,6 +1797,13 @@
     }
 
     function updateAudioDisplay() {
+      if (!audioPlaylist || audioPlaylist.length === 0) {
+        generateShuffleList();
+      }
+      if (audioPlaylist.length === 0) return;
+      if (audioPointer >= audioPlaylist.length) audioPointer = 0;
+      audioQIdx = audioPlaylist[audioPointer];
+
       const q = questions[audioQIdx];
       const qTitle = document.getElementById('audioQuestionTitle');
       const catBadge = document.getElementById('audioCategoryBadge');
@@ -1724,10 +1826,12 @@
         statusBadge.className = `text-[10px] px-2 py-0.5 rounded font-mono font-bold ${info.cls}`;
       }
 
-      if (isShuffle) {
-        counterEl.innerHTML = `<span class="text-sky-400 font-bold">🔀 ${shufflePointer + 1} / ${questions.length}</span>`;
-      } else {
-        counterEl.innerText = `${audioQIdx + 1} / ${questions.length}`;
+      if (counterEl) {
+        if (isShuffle) {
+          counterEl.innerHTML = `<span class="text-sky-400 font-bold">🔀 ${audioPointer + 1} / ${audioPlaylist.length}</span>`;
+        } else {
+          counterEl.innerText = `${audioPointer + 1} / ${audioPlaylist.length}`;
+        }
       }
     }
 
@@ -1735,10 +1839,11 @@
     function setupMediaSession() {
       if ('mediaSession' in navigator) {
         const q = questions[audioQIdx];
+        const catLabel = selectedAudioCategory === 'all' ? '全問' : selectedAudioCategory;
         navigator.mediaSession.metadata = new MediaMetadata({
           title: q.answer,
           artist: "BrainLab 耳学",
-          album: isShuffle ? `[🔀] ${shufflePointer + 1} / ${questions.length}` : `${audioQIdx + 1} / ${questions.length}`
+          album: `${isShuffle ? '[🔀] ' : ''}${audioPointer + 1} / ${audioPlaylist.length} (${catLabel})`
         });
 
         navigator.mediaSession.setActionHandler('play', () => toggleAudioPlayback());
@@ -1803,15 +1908,15 @@
                 // 次の問題へ（2秒の間隔・シャッフル対応）
                 setTrackedTimeout(() => {
                   if (!isPlayingAudio || seqId !== currentSequenceId) return;
-                  if (isShuffle) {
-                    shufflePointer++;
-                    if (shufflePointer >= shufflePlaylist.length) {
+                  audioPointer++;
+                  if (audioPointer >= audioPlaylist.length) {
+                    if (isShuffle) {
                       generateShuffleList();
-                      shufflePointer = 0;
                     }
-                    audioQIdx = shufflePlaylist[shufflePointer];
-                  } else {
-                    audioQIdx = (audioQIdx + 1) % questions.length;
+                    audioPointer = 0;
+                  }
+                  if (audioPlaylist.length > 0) {
+                    audioQIdx = audioPlaylist[audioPointer];
                   }
                   playSpeechSequence();
                 }, 2000);
@@ -1922,10 +2027,10 @@
       const btn = document.getElementById('toggleMaskAllBtn');
       if (btnText && btn) {
         if (isMaskAllAnswers) {
-          btnText.innerText = "🙈 答え伏せ字: ON";
+          btnText.innerText = "🙈 答え非表示";
           btn.className = "touch-btn px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition bg-sky-950 text-sky-400 border border-sky-800 flex items-center gap-1 shadow-sm";
         } else {
-          btnText.innerText = "👁️ 答え表示: ON";
+          btnText.innerText = "👁️ 答え表示";
           btn.className = "touch-btn px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1";
         }
       }
@@ -2088,7 +2193,7 @@
                 <span>🎧 耳学で聴く</span>
               </button>
               <button onclick="jumpToRecall(${q.id})" class="touch-btn py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-white rounded-lg border border-slate-700 text-xs font-mono font-bold flex items-center justify-center gap-1 transition shadow-sm">
-                <span>🧠 想起で解く</span>
+                <span>💡 暗記で解く</span>
               </button>
             </div>
           </div>
@@ -2100,28 +2205,48 @@
     function jumpToAudio(questionId) {
       const idx = questions.findIndex(q => q.id === questionId);
       if (idx === -1) return;
+      const targetCategory = questions[idx].category;
+      if (selectedAudioCategory !== 'all' && selectedAudioCategory !== targetCategory) {
+        selectedAudioCategory = 'all';
+        initAudioCategoryChips();
+      }
+      generateShuffleList();
+      const pIdx = audioPlaylist.indexOf(idx);
+      if (pIdx !== -1) {
+        audioPointer = pIdx;
+      } else {
+        audioPlaylist.unshift(idx);
+        audioPointer = 0;
+      }
       audioQIdx = idx;
       switchMode('audio');
-      // 自動でその問題を再生
       if (!isPlayingAudio) {
         toggleAudioPlayback();
       } else {
         clearAllSpeech();
+        updateAudioDisplay();
         playSpeechSequence();
       }
     }
 
-    // 想起道場へジャンプして解く
+    // 暗記道場へジャンプして解く
     function jumpToRecall(questionId) {
       const idx = questions.findIndex(q => q.id === questionId);
       if (idx === -1) return;
-      if (isRecallShuffle) {
-        recallPlaylist = [idx, ...recallPlaylist.filter(i => i !== idx)];
-        recallPointer = 0;
-      } else {
-        curQIndex = idx;
-        recallPointer = idx;
+      const targetCategory = questions[idx].category;
+      if (selectedRecallCategory !== 'all' && selectedRecallCategory !== targetCategory) {
+        selectedRecallCategory = 'all';
+        initRecallCategoryChips();
       }
+      generateRecallPlaylist();
+      const pIdx = recallPlaylist.indexOf(idx);
+      if (pIdx !== -1) {
+        recallPointer = pIdx;
+      } else {
+        recallPlaylist.unshift(idx);
+        recallPointer = 0;
+      }
+      curQIndex = idx;
       switchMode('recall');
       renderQuestion();
     }
@@ -2179,6 +2304,10 @@
 
     // 初期化
     window.addEventListener('DOMContentLoaded', () => {
+      initRecallCategoryChips();
+      initAudioCategoryChips();
+      generateRecallPlaylist();
+      generateShuffleList();
       renderQuestion();
       updateAnalogyUI();
       updateVoiceGenderUI();
