@@ -124,14 +124,17 @@
       </div>
       <!-- モード切り替えタブ -->
       <nav class="flex space-x-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-xs">
-        <button id="tabRecall" onclick="switchMode('recall')" class="px-3 py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow">
-          🧠 想起道場
+        <button id="tabRecall" onclick="switchMode('recall')" class="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow text-[11px] sm:text-xs">
+          🧠 想起
         </button>
-        <button id="tabTrace" onclick="switchMode('trace')" class="px-3 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white">
+        <button id="tabTrace" onclick="switchMode('trace')" class="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white text-[11px] sm:text-xs">
           ⚡ トレース
         </button>
-        <button id="tabAudio" onclick="switchMode('audio')" class="px-3 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white">
-          🎧 耳学15分
+        <button id="tabAudio" onclick="switchMode('audio')" class="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white text-[11px] sm:text-xs">
+          🎧 耳学
+        </button>
+        <button id="tabIndex" onclick="switchMode('index')" class="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white text-[11px] sm:text-xs">
+          📚 索引
         </button>
       </nav>
     </div>
@@ -432,6 +435,59 @@
           <p class="text-[10px] text-center text-slate-400">
             画面が暗くならないようスリープ防止機能を自動起動中（ポケット時は省電力画面推奨）
           </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 知識索引＆検索練習モード (答え・ジャンル一覧 ＆ キーワード検索) -->
+    <div id="indexView" class="hidden flex-1 flex flex-col">
+      <div class="bg-[#131d33] border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex-1 flex flex-col">
+        <!-- ヘッダータイトル＆バッジ -->
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs px-2.5 py-1 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded-lg font-mono flex items-center gap-1.5 shadow-sm">
+            <span>📚</span> 知識索引 ＆ 検索練習
+          </span>
+          <span id="searchResultCount" class="text-xs text-slate-400 font-mono">
+            全8問
+          </span>
+        </div>
+
+        <!-- 検索バー -->
+        <div class="relative mb-3">
+          <input
+            id="indexSearchInput"
+            type="text"
+            oninput="handleIndexSearch()"
+            placeholder="答え・問題・ヒントを検索 (例: 排他, トランザクション)"
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 pl-10 pr-9 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition shadow-inner"
+          />
+          <span class="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
+          <button id="clearSearchBtn" onclick="clearIndexSearch()" class="hidden absolute right-3 top-2.5 text-slate-400 hover:text-white text-xs bg-slate-800 rounded-full w-5 h-5 flex items-center justify-center">
+            ✕
+          </button>
+        </div>
+
+        <!-- ジャンルフィルター & 想起テストスイッチ -->
+        <div class="space-y-2 mb-3">
+          <!-- ジャンルチップス -->
+          <div id="categoryChips" class="flex gap-1.5 overflow-x-auto pb-1 text-[11px] font-mono no-scrollbar">
+            <!-- JSで動的生成：[すべて] [最新・セキュリティ] [システム開発技術] 等 -->
+          </div>
+
+          <!-- 想起テストモード切り替え（答え伏せ字・望ましい困難） -->
+          <div class="flex items-center justify-between pt-1.5 border-t border-slate-800/80 text-xs">
+            <span class="text-slate-400 text-[11px] flex items-center gap-1">
+              <span>🧠</span> 望ましい困難（想起テスト）
+            </span>
+            <button id="toggleMaskAllBtn" onclick="toggleMaskAllMode()" class="touch-btn px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition bg-sky-950 text-sky-400 border border-sky-800 flex items-center gap-1 shadow-sm">
+              <span id="maskAllBtnText">🙈 答え伏せ字: ON</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- カード一覧コンテナ -->
+        <div id="indexCardsList" class="flex-1 overflow-y-auto space-y-3 pr-0.5 max-h-[calc(100vh-340px)] min-h-[250px]">
+          <!-- JSでレンダリング -->
         </div>
       </div>
     </div>
@@ -1524,7 +1580,258 @@
     }
 
     // ==========================================
-    // 5. モード切り替えタブ
+    // 5. 知識索引＆検索練習モジュール (答え・ジャンル一覧＆キーワード検索)
+    // ==========================================
+    let indexSearchQuery = '';
+    let selectedCategory = 'all';
+    let isMaskAllAnswers = true; // デフォルトは想起テストモード（望ましい困難）
+    const revealedCardIds = new Set(); // 個別にアンロックしたカードID
+
+    // カテゴリ一覧の生成とチップ描画
+    function initCategoryChips() {
+      const container = document.getElementById('categoryChips');
+      if (!container) return;
+
+      const categories = ['all', ...Array.from(new Set(questions.map(q => q.category)))];
+      
+      container.innerHTML = categories.map(cat => {
+        const label = (cat === 'all') ? '🌐 すべて' : cat;
+        const isSelected = (cat === selectedCategory);
+        const cls = isSelected
+          ? 'px-2.5 py-1 rounded-lg bg-sky-500 text-slate-950 font-bold whitespace-nowrap transition cursor-pointer shadow-sm text-[11px]'
+          : 'px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 whitespace-nowrap transition cursor-pointer border border-slate-700 text-[11px]';
+        return `<button onclick="setCategoryFilter('${cat}')" class="${cls}">${label}</button>`;
+      }).join('');
+    }
+
+    function setCategoryFilter(cat) {
+      selectedCategory = cat;
+      initCategoryChips();
+      renderIndexView();
+    }
+
+    function handleIndexSearch() {
+      const input = document.getElementById('indexSearchInput');
+      const clearBtn = document.getElementById('clearSearchBtn');
+      if (!input) return;
+
+      indexSearchQuery = input.value.trim();
+      if (clearBtn) {
+        if (indexSearchQuery.length > 0) clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
+      }
+      renderIndexView();
+    }
+
+    function clearIndexSearch() {
+      const input = document.getElementById('indexSearchInput');
+      const clearBtn = document.getElementById('clearSearchBtn');
+      if (input) input.value = '';
+      if (clearBtn) clearBtn.classList.add('hidden');
+      indexSearchQuery = '';
+      renderIndexView();
+    }
+
+    function toggleMaskAllMode() {
+      isMaskAllAnswers = !isMaskAllAnswers;
+      const btnText = document.getElementById('maskAllBtnText');
+      const btn = document.getElementById('toggleMaskAllBtn');
+      if (btnText && btn) {
+        if (isMaskAllAnswers) {
+          btnText.innerText = "🙈 答え伏せ字: ON";
+          btn.className = "touch-btn px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition bg-sky-950 text-sky-400 border border-sky-800 flex items-center gap-1 shadow-sm";
+        } else {
+          btnText.innerText = "👁️ 答え表示: ON";
+          btn.className = "touch-btn px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1";
+        }
+      }
+      revealedCardIds.clear();
+      renderIndexView();
+    }
+
+    function toggleCardAnswer(qid) {
+      if (revealedCardIds.has(qid)) {
+        revealedCardIds.delete(qid);
+      } else {
+        revealedCardIds.add(qid);
+      }
+      renderIndexView();
+    }
+
+    // 検索語句のハイライト処理
+    function highlightQuery(text, query) {
+      if (!query) return escapeHtml(text);
+      const escapedText = escapeHtml(text);
+      const escapedQuery = escapeHtml(query);
+      const regex = new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      return escapedText.replace(regex, '<mark class="bg-amber-400/40 text-amber-200 px-0.5 rounded font-bold">$1</mark>');
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // 一覧・検索結果の描画
+    function renderIndexView() {
+      const container = document.getElementById('indexCardsList');
+      const counter = document.getElementById('searchResultCount');
+      if (!container) return;
+
+      const qLower = indexSearchQuery.toLowerCase();
+
+      // フィルタリング
+      const filtered = questions.filter(q => {
+        // カテゴリ一致
+        if (selectedCategory !== 'all' && q.category !== selectedCategory) return false;
+        if (!qLower) return true;
+
+        // キーワード検索（答え・問題・ヒント・解説・ジャンル）
+        return (
+          q.answer.toLowerCase().includes(qLower) ||
+          q.question.toLowerCase().includes(qLower) ||
+          q.hint.toLowerCase().includes(qLower) ||
+          q.explanation.toLowerCase().includes(qLower) ||
+          q.category.toLowerCase().includes(qLower)
+        );
+      });
+
+      if (counter) {
+        counter.innerText = (indexSearchQuery || selectedCategory !== 'all')
+          ? `${filtered.length}問ヒット (全${questions.length}問中)`
+          : `全${questions.length}問`;
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center bg-slate-900/50 rounded-xl border border-slate-800 text-slate-400 space-y-2">
+            <span class="text-3xl block mb-2">🔍</span>
+            <p class="text-sm font-bold text-slate-300">該当する問題が見つかりませんでした</p>
+            <p class="text-xs text-slate-500">キーワードを変えるか、カテゴリフィルターを「すべて」に戻してください。</p>
+            <button onclick="clearIndexSearch(); setCategoryFilter('all');" class="mt-2 text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 rounded-lg border border-slate-700">
+              検索条件をリセット
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(q => {
+        // ヒット箇所の判定バッジ（検索手がかり効果）
+        const matchBadges = [];
+        if (qLower) {
+          if (q.answer.toLowerCase().includes(qLower)) matchBadges.push('<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">🎯 答えでヒット</span>');
+          if (q.hint.toLowerCase().includes(qLower)) matchBadges.push('<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800">💡 ヒントでヒット</span>');
+          if (q.question.toLowerCase().includes(qLower)) matchBadges.push('<span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800">📝 問題文でヒット</span>');
+          if (q.explanation.toLowerCase().includes(qLower)) matchBadges.push('<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-400 border border-purple-800">🔍 解説でヒット</span>');
+        }
+
+        // 答えのマスク状態判定
+        const isRevealed = !isMaskAllAnswers || revealedCardIds.has(q.id);
+
+        return `
+          <div class="bg-slate-900/90 rounded-xl p-3.5 border border-slate-800 hover:border-slate-700 transition space-y-2.5 shadow-sm">
+            <!-- カードヘッダー: カテゴリ ＆ マッチバッジ ＆ ID -->
+            <div class="flex items-center justify-between flex-wrap gap-1.5 pb-2 border-b border-slate-800/70">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[10px] px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800 font-mono">
+                  ${escapeHtml(q.category)}
+                </span>
+                ${matchBadges.join(' ')}
+              </div>
+              <span class="text-[10px] text-slate-500 font-mono">#${q.id}</span>
+            </div>
+
+            <!-- 問題文 -->
+            <div>
+              <span class="text-[10px] font-bold text-slate-400 block mb-0.5 font-mono">📝 出題</span>
+              <p class="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
+                ${highlightQuery(q.question, indexSearchQuery)}
+              </p>
+            </div>
+
+            <!-- たとえ話ヒント -->
+            <div class="p-2 bg-amber-950/20 border border-amber-900/30 rounded-lg">
+              <span class="text-[10px] font-bold text-amber-400 block mb-0.5 font-mono">💡 日常のたとえ話ヒント</span>
+              <p class="text-xs text-amber-200/90 leading-relaxed">
+                ${highlightQuery(q.hint, indexSearchQuery)}
+              </p>
+            </div>
+
+            <!-- 答え（アクティブリコール・望ましい困難） -->
+            <div>
+              <span class="text-[10px] font-bold text-emerald-400 block mb-0.5 font-mono">🎯 正解キーワード</span>
+              ${isRevealed ? `
+                <div class="p-2.5 bg-emerald-950/40 border border-emerald-800/70 rounded-lg flex items-center justify-between cursor-pointer" onclick="toggleCardAnswer(${q.id})" title="タップで再び隠す">
+                  <span class="text-xs sm:text-sm font-bold text-emerald-300 font-mono">
+                    ${highlightQuery(q.answer, indexSearchQuery)}
+                  </span>
+                  <span class="text-[10px] text-emerald-500/80 font-mono">🔓 (タップで隠す)</span>
+                </div>
+              ` : `
+                <div class="p-2.5 bg-slate-950 border border-slate-800 border-dashed rounded-lg flex items-center justify-between cursor-pointer hover:border-sky-500/60 transition group" onclick="toggleCardAnswer(${q.id})" title="タップして答えを想起！">
+                  <span class="text-xs text-slate-500 group-hover:text-sky-400 transition font-mono flex items-center gap-1.5">
+                    <span>🔒</span> 頭で思い出してからタップして確認！
+                  </span>
+                  <span class="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded group-hover:bg-sky-500 group-hover:text-slate-950 font-bold transition">
+                    想起
+                  </span>
+                </div>
+              `}
+            </div>
+
+            <!-- 科学的解説（なぜ重要か？） -->
+            <div class="p-2 bg-slate-950/60 rounded-lg border border-slate-800/60">
+              <span class="text-[10px] font-bold text-sky-400 block mb-0.5 font-mono">🔍 科学的解説（なぜ重要か？）</span>
+              <p class="text-[11px] text-slate-400 leading-relaxed">
+                ${highlightQuery(q.explanation, indexSearchQuery)}
+              </p>
+            </div>
+
+            <!-- アクションボタン: 耳学で再生 & 道場で解く -->
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button onclick="jumpToAudio(${q.id})" class="touch-btn py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-white rounded-lg border border-slate-700 text-xs font-mono font-bold flex items-center justify-center gap-1 transition shadow-sm">
+                <span>🎧 耳学で聴く</span>
+              </button>
+              <button onclick="jumpToRecall(${q.id})" class="touch-btn py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-white rounded-lg border border-slate-700 text-xs font-mono font-bold flex items-center justify-center gap-1 transition shadow-sm">
+                <span>🎯 道場で想起</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 耳学へジャンプして再生
+    function jumpToAudio(questionId) {
+      const idx = questions.findIndex(q => q.id === questionId);
+      if (idx === -1) return;
+      audioQIdx = idx;
+      switchMode('audio');
+      // 自動でその問題を再生
+      if (!isPlayingAudio) {
+        toggleAudioPlayback();
+      } else {
+        clearAllSpeech();
+        playSpeechSequence();
+      }
+    }
+
+    // 想起道場へジャンプして解く
+    function jumpToRecall(questionId) {
+      const idx = questions.findIndex(q => q.id === questionId);
+      if (idx === -1) return;
+      currentIdx = idx;
+      switchMode('recall');
+      renderQuestion();
+    }
+
+    // ==========================================
+    // 6. モード切り替えタブ
     // ==========================================
     function switchMode(mode) {
       if (isPlayingAudio && mode !== 'audio') {
@@ -1534,32 +1841,40 @@
       const recallView = document.getElementById('recallView');
       const traceView = document.getElementById('traceView');
       const audioView = document.getElementById('audioView');
+      const indexView = document.getElementById('indexView');
 
       const tabRecall = document.getElementById('tabRecall');
       const tabTrace = document.getElementById('tabTrace');
       const tabAudio = document.getElementById('tabAudio');
+      const tabIndex = document.getElementById('tabIndex');
 
-      const tabs = [tabRecall, tabTrace, tabAudio];
+      const tabs = [tabRecall, tabTrace, tabAudio, tabIndex];
       tabs.forEach(t => {
-        t.className = "px-3 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white";
+        if (t) t.className = "px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white text-[11px] sm:text-xs";
       });
 
-      recallView.classList.add('hidden');
-      traceView.classList.add('hidden');
-      audioView.classList.add('hidden');
+      if (recallView) recallView.classList.add('hidden');
+      if (traceView) traceView.classList.add('hidden');
+      if (audioView) audioView.classList.add('hidden');
+      if (indexView) indexView.classList.add('hidden');
 
       if (mode === 'recall') {
-        recallView.classList.remove('hidden');
-        tabRecall.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow";
+        if (recallView) recallView.classList.remove('hidden');
+        if (tabRecall) tabRecall.className = "px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow text-[11px] sm:text-xs";
       } else if (mode === 'trace') {
-        traceView.classList.remove('hidden');
-        tabTrace.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow";
+        if (traceView) traceView.classList.remove('hidden');
+        if (tabTrace) tabTrace.className = "px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow text-[11px] sm:text-xs";
         resetTrace();
       } else if (mode === 'audio') {
-        audioView.classList.remove('hidden');
-        tabAudio.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow";
+        if (audioView) audioView.classList.remove('hidden');
+        if (tabAudio) tabAudio.className = "px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow text-[11px] sm:text-xs";
         lockAudioAnswer();
         updateAudioDisplay();
+      } else if (mode === 'index') {
+        if (indexView) indexView.classList.remove('hidden');
+        if (tabIndex) tabIndex.className = "px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all bg-sky-500 text-white shadow text-[11px] sm:text-xs";
+        initCategoryChips();
+        renderIndexView();
       }
     }
 
@@ -1572,6 +1887,8 @@
       lockAudioAnswer();
       updateAudioDisplay();
       setTimeout(initBestVoice, 300);
+      initCategoryChips();
+      renderIndexView();
 
       // PWA Service Worker 登録（自動キャッシュ＆高速オフライン対応）
       if ('serviceWorker' in navigator) {
