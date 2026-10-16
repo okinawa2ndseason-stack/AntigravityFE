@@ -1,7 +1,7 @@
 {
-  "name": "FE-BrainLab | 基本情報アクティブリコール道場",
-  "short_name": "FE-BrainLab",
-  "description": "認知科学に基づく基本情報技術者試験（FE）特化型アクティブリコール学習アプリ",
+  "name": "BrainLab | 記憶特化型学習システム",
+  "short_name": "BrainLab",
+  "description": "認知科学と記憶術に基づく記憶特化型学習Webアプリケーション",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
