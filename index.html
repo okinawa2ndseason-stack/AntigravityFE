@@ -149,15 +149,19 @@
       <div class="flex items-center justify-between text-xs text-slate-400 mb-2.5 px-1">
         <div class="flex items-center gap-2">
           <span id="categoryBadge" class="px-2 py-0.5 rounded bg-slate-800 text-sky-300 font-mono text-[11px] border border-slate-700">最新テクノロジ</span>
-          <span id="streakCount" class="text-amber-400 font-bold">🔥 連続正解 0</span>
+          <span id="streakCount" class="text-amber-400 font-bold">🔥 0</span>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
+          <!-- 🔀 弱点優先スマートシャッフル -->
+          <button id="recallShuffleToggleBtn" onclick="toggleRecallShuffle()" class="touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm" title="未遭遇・要復習の問題を優先して出題">
+            <span>🔀</span> <span id="recallShuffleLabel">順序</span>
+          </button>
           <!-- ⚡ ゼロ秒想起トグル -->
           <button id="fastRecallToggleBtn" onclick="toggleFastRecall()" class="touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm" title="3秒で自動オープンするタイムアタック想起">
             <span id="fastRecallIcon">⚡</span> <span id="fastRecallLabel">高速: OFF</span>
           </button>
-          <div class="font-mono text-[11px]">
-            <span id="currentIndex" class="text-white font-bold">1</span> / <span id="totalQuestions">10</span>
+          <div class="font-mono text-[11px] pl-0.5">
+            <span id="currentIndex" class="text-white font-bold">1</span>/<span id="totalQuestions">8</span>
           </div>
         </div>
       </div>
@@ -176,8 +180,9 @@
       <div class="bg-[#131d33] border border-slate-800 rounded-2xl p-5 shadow-xl shadow-black/40 flex-1 flex flex-col justify-between mb-4">
         <div>
           <div class="flex items-center justify-between text-xs text-sky-400/80 mb-2 font-mono">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5">
               <span>[重要問題]</span>
+              <span id="cardStatusBadge" class="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-sky-950 text-sky-400 border border-sky-800">🌱 未遭遇</span>
               <span id="fastTimerBadge" class="hidden text-[10px] px-2 py-0.5 bg-amber-950 text-amber-300 border border-amber-800 rounded font-bold animate-pulse">⚡ 3秒想起中</span>
             </div>
             <span id="difficultyBadge" class="text-[10px] px-2 py-0.5 bg-slate-800 rounded text-slate-300">頻出・必須</span>
@@ -350,9 +355,14 @@
           <!-- 1. 出題中の問題カード（常時表示・状況把握） -->
           <div class="w-full bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-left mb-3 shadow-inner">
             <div class="flex items-center justify-between mb-2">
-              <span id="audioCategoryBadge" class="text-[10px] px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800 font-mono">
-                最新・セキュリティ
-              </span>
+              <div class="flex items-center gap-1.5">
+                <span id="audioCategoryBadge" class="text-[10px] px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800 font-mono">
+                  最新・セキュリティ
+                </span>
+                <span id="audioStatusBadge" class="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-sky-950 text-sky-400 border border-sky-800">
+                  🌱 未遭遇
+                </span>
+              </div>
               <button id="analogyToggleBtn" onclick="toggleAnalogyCard()" class="touch-btn text-[11px] px-2.5 py-1 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm">
                 <span>💡 ヒント: OFF</span>
               </button>
@@ -857,13 +867,143 @@
     ];
 
     // ==========================================
-    // 2. 想起道場コントローラ (Active Recall Engine)
+    // 2. 学習ステータス管理 (LocalStorage 連動)
+    // ==========================================
+    const STATS_STORAGE_KEY = 'brainlab_stats_v1';
+
+    function getCardStats() {
+      try {
+        const raw = localStorage.getItem(STATS_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function updateCardStat(questionId, isCorrect) {
+      const stats = getCardStats();
+      if (!stats[questionId]) {
+        stats[questionId] = {
+          views: 0,
+          correctStreak: 0,
+          incorrectCount: 0,
+          lastAnswered: 0
+        };
+      }
+      const s = stats[questionId];
+      s.views = (s.views || 0) + 1;
+      s.lastAnswered = Date.now();
+
+      if (isCorrect) {
+        s.correctStreak = (s.correctStreak || 0) + 1;
+      } else {
+        s.correctStreak = 0;
+        s.incorrectCount = (s.incorrectCount || 0) + 1;
+      }
+
+      try {
+        localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
+      } catch (e) {}
+
+      return s;
+    }
+
+    function recordCardView(questionId) {
+      const stats = getCardStats();
+      if (!stats[questionId]) {
+        stats[questionId] = {
+          views: 1,
+          correctStreak: 0,
+          incorrectCount: 0,
+          lastAnswered: 0
+        };
+      } else {
+        stats[questionId].views = (stats[questionId].views || 0) + 1;
+      }
+      try {
+        localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
+      } catch (e) {}
+    }
+
+    // 弱点優先スコア計算（未遭遇・ミスした問題を最優先）
+    function calculateQuestionPriority(q, stats) {
+      const s = stats[q.id];
+      if (!s || !s.views || s.views === 0) {
+        return 1000 + Math.random() * 50; // 未遭遇は最優先
+      }
+      if (s.correctStreak === 0) {
+        // 要復習（直近でミス）
+        const hours = (Date.now() - (s.lastAnswered || 0)) / (1000 * 60 * 60);
+        return 500 + (s.incorrectCount || 1) * 20 + Math.min(hours, 24) * 5 + Math.random() * 20;
+      }
+      if (s.correctStreak === 1) {
+        return 200 + Math.random() * 30; // 練習中
+      }
+      // 連続正解2回以上の定着済
+      return Math.max(10, 100 - s.correctStreak * 20) + Math.random() * 20;
+    }
+
+    // ステータスバッジ情報
+    function getStatusBadgeInfo(q, stats) {
+      const s = stats[q.id];
+      if (!s || !s.views || s.views === 0) {
+        return { text: '🌱 未遭遇', cls: 'bg-sky-950 text-sky-400 border border-sky-800' };
+      }
+      if (s.correctStreak === 0) {
+        return { text: `⚠️ 要復習 (${s.incorrectCount || 1}回ミス)`, cls: 'bg-rose-950 text-rose-300 border border-rose-800' };
+      }
+      if (s.correctStreak === 1) {
+        return { text: '⚡ 練習中', cls: 'bg-amber-950 text-amber-300 border border-amber-800' };
+      }
+      return { text: `✓ 習得済 (連続${s.correctStreak})`, cls: 'bg-emerald-950 text-emerald-300 border border-emerald-800' };
+    }
+
+    // ==========================================
+    // 3. 想起道場コントローラ (Active Recall Engine)
     // ==========================================
     let curQIndex = 0;
     let streak = 0;
     let isHintOpen = false;
     let isFastRecall = false; // ⚡ ゼロ秒想起（3秒タイムアタック）
     let fastRecallTimer = null;
+    let isRecallShuffle = false; // 🔀 弱点優先スマートシャッフル
+    let recallPlaylist = [];
+    let recallPointer = 0;
+
+    function generateRecallPlaylist() {
+      const stats = getCardStats();
+      if (isRecallShuffle) {
+        const scored = questions
+          .map((q, idx) => ({ idx, priority: calculateQuestionPriority(q, stats) }))
+          .sort((a, b) => b.priority - a.priority);
+        recallPlaylist = scored.map(item => item.idx);
+      } else {
+        recallPlaylist = Array.from({ length: questions.length }, (_, i) => i);
+      }
+      recallPointer = 0;
+    }
+
+    function toggleRecallShuffle() {
+      isRecallShuffle = !isRecallShuffle;
+      const btn = document.getElementById('recallShuffleToggleBtn');
+      const label = document.getElementById('recallShuffleLabel');
+
+      if (isRecallShuffle) {
+        generateRecallPlaylist();
+        curQIndex = recallPlaylist[0];
+        recallPointer = 0;
+        btn.className = "touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-sky-950 text-sky-400 border border-sky-800 flex items-center gap-1 shadow-sm";
+        label.innerText = "弱点優先";
+      } else {
+        generateRecallPlaylist();
+        curQIndex = 0;
+        recallPointer = 0;
+        btn.className = "touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm";
+        label.innerText = "順序";
+      }
+
+      renderQuestion();
+    }
 
     function clearFastRecallTimer() {
       if (fastRecallTimer) {
@@ -929,16 +1069,29 @@
     }
 
     function renderQuestion() {
+      if (recallPlaylist.length === 0) {
+        generateRecallPlaylist();
+      }
+      curQIndex = recallPlaylist[recallPointer];
       const q = questions[curQIndex];
+      const stats = getCardStats();
+      const statusInfo = getStatusBadgeInfo(q, stats);
+
       document.getElementById('categoryBadge').innerText = q.category;
-      document.getElementById('currentIndex').innerText = curQIndex + 1;
+      document.getElementById('currentIndex').innerText = recallPointer + 1;
       document.getElementById('totalQuestions').innerText = questions.length;
       document.getElementById('questionTitle').innerText = q.question;
       document.getElementById('hintContent').innerText = q.hint;
       document.getElementById('correctAnswer').innerText = q.answer;
       document.getElementById('explanationText').innerText = q.explanation;
 
-      const percent = ((curQIndex) / questions.length) * 100;
+      const cardBadge = document.getElementById('cardStatusBadge');
+      if (cardBadge) {
+        cardBadge.innerText = statusInfo.text;
+        cardBadge.className = `text-[10px] px-2 py-0.5 rounded font-mono font-bold ${statusInfo.cls}`;
+      }
+
+      const percent = ((recallPointer) / questions.length) * 100;
       document.getElementById('progressBar').style.width = percent + '%';
 
       document.getElementById('hintBox').classList.add('hidden');
@@ -977,14 +1130,21 @@
     }
 
     function handleFeedback(isCorrect) {
+      const q = questions[curQIndex];
+      updateCardStat(q.id, isCorrect);
+
       if (isCorrect) {
         streak++;
       } else {
         streak = 0;
-        questions.push(questions[curQIndex]);
       }
-      document.getElementById('streakCount').innerText = `🔥 連続正解 ${streak}`;
-      curQIndex = (curQIndex + 1) % questions.length;
+      document.getElementById('streakCount').innerText = `🔥 ${streak}`;
+
+      recallPointer++;
+      if (recallPointer >= recallPlaylist.length) {
+        generateRecallPlaylist();
+        recallPointer = 0;
+      }
       renderQuestion();
     }
 
@@ -1424,13 +1584,13 @@
       });
     }
 
-    // スマート・シャッフル生成（Fisher-Yates アルゴリズム）
+    // 弱点優先スマート・シャッフル生成
     function generateShuffleList() {
-      shufflePlaylist = Array.from({ length: questions.length }, (_, i) => i);
-      for (let i = shufflePlaylist.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shufflePlaylist[i], shufflePlaylist[j]] = [shufflePlaylist[j], shufflePlaylist[i]];
-      }
+      const stats = getCardStats();
+      const scored = questions
+        .map((q, idx) => ({ idx, priority: calculateQuestionPriority(q, stats) }))
+        .sort((a, b) => b.priority - a.priority);
+      shufflePlaylist = scored.map(item => item.idx);
       shufflePointer = 0;
     }
 
@@ -1440,11 +1600,11 @@
       const btn = document.getElementById('shuffleToggleBtn');
       if (isShuffle) {
         generateShuffleList();
-        // シャッフルONにした瞬間に1問目固定を脱却し、ランダムな問題に即座に切り替え
+        // シャッフルONにした瞬間に弱点・未遭遇の最優先問題に即座に切り替え
         audioQIdx = shufflePlaylist[0];
         shufflePointer = 0;
-        btn.className = "touch-btn w-full py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-sky-500 text-slate-950 border border-sky-400 shadow-md shadow-sky-500/20 flex items-center justify-center gap-1.5";
-        btn.innerHTML = "<span>🔀 シャッフル: ON</span>";
+        btn.className = "touch-btn w-full py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-sky-950 text-sky-400 border border-sky-800 shadow-sm flex items-center justify-center gap-1.5";
+        btn.innerHTML = "<span>🔀 弱点優先: ON</span>";
       } else {
         btn.className = "touch-btn w-full py-1.5 px-2 rounded-lg font-mono font-bold text-xs transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5";
         btn.innerHTML = "<span>🔀 シャッフル: OFF</span>";
@@ -1546,6 +1706,7 @@
       const q = questions[audioQIdx];
       const qTitle = document.getElementById('audioQuestionTitle');
       const catBadge = document.getElementById('audioCategoryBadge');
+      const statusBadge = document.getElementById('audioStatusBadge');
       const analogyText = document.getElementById('audioAnalogyText');
       const revealedTerm = document.getElementById('audioRevealedTerm');
       const explanation = document.getElementById('audioExplanationText');
@@ -1556,6 +1717,13 @@
       if (analogyText) analogyText.innerText = q.hint;
       if (revealedTerm) revealedTerm.innerText = q.answer;
       if (explanation) explanation.innerText = q.explanation;
+
+      if (statusBadge) {
+        const stats = getCardStats();
+        const info = getStatusBadgeInfo(q, stats);
+        statusBadge.innerText = info.text;
+        statusBadge.className = `text-[10px] px-2 py-0.5 rounded font-mono font-bold ${info.cls}`;
+      }
 
       if (isShuffle) {
         counterEl.innerHTML = `<span class="text-sky-400 font-bold">🔀 ${shufflePointer + 1} / ${questions.length}</span>`;
@@ -1588,12 +1756,14 @@
       clearAllSpeech(); // 過去のタイマー・Utteranceを全消去＆世代IDをインクリメント
       const seqId = currentSequenceId; // 今回の再生セッション世代トークンを固定
 
+      const q = questions[audioQIdx];
+      recordCardView(q.id); // 閲覧・遭遇ログを記録
+
       lockAudioAnswer(); // 出題開始時は正解・解説をマスク（ネタバレ防止）
       updateAudioDisplay();
       setupMediaSession();
       document.getElementById('thinkingIndicator').classList.add('hidden');
 
-      const q = questions[audioQIdx];
       const script = q.speechScript;
 
       // Step 1: 問題文の読み上げ
@@ -1835,6 +2005,7 @@
         return;
       }
 
+      const stats = getCardStats();
       container.innerHTML = filtered.map(q => {
         // ヒット箇所の判定バッジ（検索手がかり効果）
         const matchBadges = [];
@@ -1845,16 +2016,21 @@
           if (q.explanation.toLowerCase().includes(qLower)) matchBadges.push('<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-400 border border-purple-800">🔍 解説でヒット</span>');
         }
 
+        const statusInfo = getStatusBadgeInfo(q, stats);
+
         // 答えのマスク状態判定
         const isRevealed = !isMaskAllAnswers || revealedCardIds.has(q.id);
 
         return `
           <div class="bg-slate-900/90 rounded-xl p-3.5 border border-slate-800 hover:border-slate-700 transition space-y-2.5 shadow-sm">
-            <!-- カードヘッダー: カテゴリ ＆ マッチバッジ ＆ ID -->
+            <!-- カードヘッダー: カテゴリ ＆ 学習ステータス ＆ マッチバッジ ＆ ID -->
             <div class="flex items-center justify-between flex-wrap gap-1.5 pb-2 border-b border-slate-800/70">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[10px] px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800 font-mono">
                   ${escapeHtml(q.category)}
+                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded font-mono font-bold ${statusInfo.cls}">
+                  ${statusInfo.text}
                 </span>
                 ${matchBadges.join(' ')}
               </div>
@@ -1940,7 +2116,13 @@
     function jumpToRecall(questionId) {
       const idx = questions.findIndex(q => q.id === questionId);
       if (idx === -1) return;
-      curQIndex = idx;
+      if (isRecallShuffle) {
+        recallPlaylist = [idx, ...recallPlaylist.filter(i => i !== idx)];
+        recallPointer = 0;
+      } else {
+        curQIndex = idx;
+        recallPointer = idx;
+      }
       switchMode('recall');
       renderQuestion();
     }
