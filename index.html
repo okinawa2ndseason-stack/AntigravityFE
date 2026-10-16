@@ -134,7 +134,7 @@
           🎧 耳学
         </button>
         <button id="tabIndex" onclick="switchMode('index')" class="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-white text-[11px] sm:text-xs">
-          📚 索引
+          🔍 検索
         </button>
       </nav>
     </div>
@@ -154,7 +154,7 @@
         <div class="flex items-center gap-1.5">
           <!-- 🔀 弱点優先スマートシャッフル -->
           <button id="recallShuffleToggleBtn" onclick="toggleRecallShuffle()" class="touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm" title="未遭遇・要復習の問題を優先して出題">
-            <span>🔀</span> <span id="recallShuffleLabel">順序</span>
+            <span id="recallShuffleIcon" class="text-rose-400 font-bold">➔</span> <span id="recallShuffleLabel">番号順</span>
           </button>
           <!-- ⚡ ゼロ秒想起トグル -->
           <button id="fastRecallToggleBtn" onclick="toggleFastRecall()" class="touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm" title="3秒で自動オープンするタイムアタック想起">
@@ -479,7 +479,7 @@
         <!-- ヘッダータイトル＆バッジ -->
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs px-2.5 py-1 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded-lg font-mono flex items-center gap-1.5 shadow-sm">
-            <span>📚</span> 知識索引・キーワード検索
+            <span>🔍</span> キーワード検索・一覧
           </span>
           <span id="searchResultCount" class="text-xs text-slate-400 font-mono">
             全8問
@@ -986,20 +986,19 @@
     function toggleRecallShuffle() {
       isRecallShuffle = !isRecallShuffle;
       const btn = document.getElementById('recallShuffleToggleBtn');
-      const label = document.getElementById('recallShuffleLabel');
 
       if (isRecallShuffle) {
         generateRecallPlaylist();
         curQIndex = recallPlaylist[0];
         recallPointer = 0;
         btn.className = "touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-sky-950 text-sky-400 border border-sky-800 flex items-center gap-1 shadow-sm";
-        label.innerText = "弱点優先";
+        btn.innerHTML = '<span>🔀</span> <span id="recallShuffleLabel">弱点優先</span>';
       } else {
         generateRecallPlaylist();
         curQIndex = 0;
         recallPointer = 0;
         btn.className = "touch-btn text-[11px] px-2 py-0.5 rounded-lg font-mono font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 shadow-sm";
-        label.innerText = "順序";
+        btn.innerHTML = '<span id="recallShuffleIcon" class="text-rose-400 font-bold">➔</span> <span id="recallShuffleLabel">番号順</span>';
       }
 
       renderQuestion();
@@ -2089,7 +2088,7 @@
                 <span>🎧 耳学で聴く</span>
               </button>
               <button onclick="jumpToRecall(${q.id})" class="touch-btn py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-white rounded-lg border border-slate-700 text-xs font-mono font-bold flex items-center justify-center gap-1 transition shadow-sm">
-                <span>🎯 道場で想起</span>
+                <span>🧠 想起で解く</span>
               </button>
             </div>
           </div>
